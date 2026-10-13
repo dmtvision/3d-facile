@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D-Facile - Dessin 3D Magique pour Enfants & Impression 3D</title>
+  <meta name="description" content="Application web de dessin 3D simplifiée pour enfants (6-10 ans) avec génération de formes étanches prêtes pour l'impression 3D.">
+  
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="css/style.css?v=36">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <!-- Header / Barre supérieure épurée -->
+  <header id="top-bar">
+    <div class="logo-area">
+      <span class="logo-icon">✨</span>
+      <h1 class="logo-title">3D<span>Facile</span></h1>
+    </div>
+
+    <!-- Actions rapides (Annuler, Rétablir, Tout effacer, Son, Aide) -->
+    <div class="top-actions">
+      <button id="btn-undo" class="pill-btn" title="Annuler la dernière chose que j'ai faite">
+        <span class="btn-icon">↩️</span>
+        <span class="btn-label">Annuler</span>
+      </button>
+      <button id="btn-redo" class="pill-btn" title="Refaire">
+        <span class="btn-icon">↪️</span>
+        <span class="btn-label">Refaire</span>
+      </button>
+      <button id="btn-clear" class="pill-btn danger-hover" title="Tout effacer pour recommencer">
+        <span class="btn-icon">🗑️</span>
+        <span class="btn-label">Tout effacer</span>
+      </button>
+      <button id="btn-sound-toggle" class="pill-btn icon-only" title="Sons : on / off" aria-label="Sons">
+        <span class="btn-icon" id="sound-icon">🔊</span>
+      </button>
+      <button id="btn-toggle-hint" class="pill-btn icon-only" title="Aide" aria-label="Aide">
+        <span class="btn-icon">❓</span>
+      </button>
+    </div>
+
+    <!-- Actions Droite : Imprimer 3D et bouton Professeur discret -->
+    <div class="top-right">
+      <button id="btn-print-modal" class="pill-btn primary-btn" title="Télécharger pour imprimer en 3D">
+        <span class="btn-icon">🖨️</span>
+        <span class="btn-label">Imprimer mon dessin</span>
+      </button>
+      <button id="btn-teacher-open" class="mini-icon-btn" title="Paramètres Enseignant" aria-label="Espace Professeur">
+        ⚙️
+      </button>
+    </div>
+  </header>
+
+  <!-- Viewport 3D -->
+  <main id="app-viewport">
+    <div id="canvas-container"></div>
+    <canvas id="draw-overlay"></canvas>
+
+    <!-- Bulle d'aide cliquable -->
+    <div id="kid-hint" class="kid-speech-bubble" title="Clique pour fermer cette bulle">
+      <span class="hint-avatar">🪄</span>
+      <span id="hint-text">Dessine un trait dans l'air avec ton doigt ou ta souris !</span>
+      <span class="hint-close">✖</span>
+    </div>
+
+    <!-- Navigation Ergonomique (Gauche) avec Sphère Gizmo 3D et D-Pad Logique -->
+    <div id="camera-dock" class="floating-dock dock-left">
+      <div class="dock-title">🧭 Tourne ton dessin</div>
+
+      <div id="gizmo-container" class="gizmo-wrapper" title="Glisse ici pour faire tourner ton dessin !"></div>
+      <div class="gizmo-caption">👆 Glisse sur la boule</div>
+
+      <div class="dpad-controller">
+        <button id="btn-cam-up" class="dpad-btn dpad-up" title="Regarder d'en haut" aria-label="Regarder d'en haut">▲</button>
+        <button id="btn-cam-left" class="dpad-btn dpad-left" title="Tourner à gauche" aria-label="Tourner à gauche">◀</button>
+
+        <div class="dpad-center-zoom">
+          <button id="btn-zoom-in" class="zoom-btn zoom-plus" title="Se rapprocher" aria-label="Zoom avant">🔍+</button>
+          <button id="btn-zoom-out" class="zoom-btn zoom-minus" title="S'éloigner" aria-label="Zoom arrière">🔍−</button>
+        </div>
+
+        <button id="btn-cam-right" class="dpad-btn dpad-right" title="Tourner à droite" aria-label="Tourner à droite">▶</button>
+        <button id="btn-cam-down" class="dpad-btn dpad-down" title="Regarder d'en bas" aria-label="Regarder d'en bas">▼</button>
+      </div>
+
+      <div class="camera-views">
+        <button class="cam-pill active" data-view="front" title="Voir de face">
+          <svg class="cam-svg" viewBox="0 0 28 28" aria-hidden="true">
+            <rect x="3" y="9" width="22" height="14" rx="3.5"/><path d="M10 9 L11.5 6 H16.5 L18 9"/>
+            <circle cx="14" cy="16" r="4.6"/><circle cx="14" cy="16" r="1.6" class="cam-fill"/><circle cx="21.2" cy="12.4" r="1" class="cam-fill"/>
+          </svg><span>Face</span></button>
+        <button class="cam-pill" data-view="side" title="Voir de côté">
+          <svg class="cam-svg" viewBox="0 0 28 28" aria-hidden="true">
+            <rect x="3" y="9" width="15" height="14" rx="3"/><path d="M8 9 L9.2 6 H13 L14 9"/>
+            <path d="M18 12 L25 9.5 V22.5 L18 20 Z"/>
+          </svg><span>Côté</span></button>
+        <button class="cam-pill" data-view="top" title="Voir de dessus">
+          <svg class="cam-svg" viewBox="0 0 28 28" aria-hidden="true">
+            <path d="M14 2 V8 M11 5.5 L14 8.5 L17 5.5"/>
+            <rect x="4" y="12" width="20" height="13" rx="3.5"/>
+            <circle cx="14" cy="18.5" r="4"/><circle cx="14" cy="18.5" r="1.4" class="cam-fill"/>
+          </svg><span>Dessus</span></button>
+      </div>
+
+      <details class="mouse-hints">
+        <summary>🖱️ Astuces souris</summary>
+        <span>Clic droit : pivoter</span>
+        <span>Clic milieu : déplacer</span>
+        <span>Molette : zoomer</span>
+      </details>
+    </div>
+
+   <!-- Outils Principaux (Bas) -->
+    <div id="tools-dock" class="floating-dock dock-bottom">
+      <div class="dock-row">
+        <div class="tool-group">
+        <div class="tool-group-label">Dessiner</div>
+        <div class="tool-selector-group">
+          <button id="tool-tube" class="magic-tool-btn active" data-tool="tube" title="Dessine un trait qui devient un boudin 3D">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <path d="M5 24 C 10 6, 22 26, 27 8" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" />
+              <circle cx="5" cy="24" r="3" fill="#3b82f6" /><circle cx="27" cy="8" r="3" fill="#60a5fa" />
+            </svg></span>
+            <span class="tool-name">Trait</span>
+          </button>
+
+          <button id="tool-balloon" class="magic-tool-btn" data-tool="balloon" title="Dessine un contour fermé : il se gonfle en ballon">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <path d="M16 4 C24 4, 28 10, 28 17 C28 25, 22 28, 16 28 C9 28, 4 24, 4 17 C4 9, 8 4, 16 4 Z" fill="#ec4899" />
+              <ellipse cx="12" cy="11" rx="4" ry="2.2" fill="#ffffff" opacity="0.5" transform="rotate(-25 12 11)" />
+            </svg></span>
+            <span class="tool-name">Ballon</span>
+          </button>
+
+        </div>
+        </div>
+
+        <div class="tool-divider"></div>
+
+        <div class="tool-group">
+        <div class="tool-group-label">Construire</div>
+        <div class="tool-selector-group">
+          <button id="tool-shapes" class="magic-tool-btn" data-tool="shape3d" title="Pose des cubes, sphères, cônes sur ton dessin">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <path d="M16 3 L27 9 L27 23 L16 29 L5 23 L5 9 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M16 3 L16 29 M5 9 L16 16 L27 9" fill="none" stroke="#0284c7" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg></span>
+            <span class="tool-name">Formes</span>
+          </button>
+
+          <button id="tool-pillar" class="magic-tool-btn" data-tool="pillar" title="Trace un pilier ou un mur bien droit">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <rect x="5" y="24" width="22" height="4" rx="1.5" fill="#0284c7" />
+              <rect x="9" y="8" width="14" height="16" rx="1" fill="#38bdf8" />
+              <line x1="13" y1="9" x2="13" y2="23" stroke="#0284c7" stroke-width="1.8" stroke-linecap="round" />
+              <line x1="19" y1="9" x2="19" y2="23" stroke="#0284c7" stroke-width="1.8" stroke-linecap="round" />
+              <rect x="5" y="4" width="22" height="4" rx="1.5" fill="#0284c7" />
+            </svg></span>
+            <span class="tool-name">Pilier</span>
+          </button>
+
+          <button id="tool-stamps" class="magic-tool-btn" data-tool="stamp" title="Colle des yeux, mains, cœurs... sur ton dessin">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <path d="M16 2 L20 11.5 L30 12.5 L22.5 19.5 L24.5 29.5 L16 24.5 L7.5 29.5 L9.5 19.5 L2 12.5 L12 11.5 Z" fill="#f59e0b" stroke="#d97706" stroke-width="1.2" stroke-linejoin="round" />
+              <circle cx="16" cy="13" r="2.5" fill="#fef3c7" />
+            </svg></span>
+            <span class="tool-name">Tampon</span>
+          </button>
+        </div>
+        </div>
+
+        <div class="tool-divider"></div>
+
+        <div class="tool-group">
+        <div class="tool-group-label">Modifier</div>
+        <div class="util-tools-group">
+          <button id="tool-edit" class="magic-tool-btn" data-tool="edit" title="Touche une forme pour la déplacer, l'agrandir ou la tourner">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <path d="M16 3 L20 8 L17.5 8 L17.5 14.5 L24 14.5 L24 12 L29 16 L24 20 L24 17.5 L17.5 17.5 L17.5 24 L20 24 L16 29 L12 24 L14.5 24 L14.5 17.5 L8 17.5 L8 20 L3 16 L8 12 L8 14.5 L14.5 14.5 L14.5 8 L12 8 Z" fill="#8b5cf6" stroke="#6d28d9" stroke-width="1" stroke-linejoin="round" />
+            </svg></span>
+            <span class="tool-name">Bouger</span>
+          </button>
+
+          <button id="tool-eraser" class="magic-tool-btn danger" data-tool="eraser" title="Touche une forme pour la faire disparaître">
+            <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+              <g transform="rotate(-25 16 16)">
+                <polygon points="6,12 18,12 26,22 14,22" fill="#f43f5e" stroke="#e11d48" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="6,12 10,7 22,7 18,12" fill="#fda4af" stroke="#e11d48" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="18,12 22,7 30,17 26,22" fill="#be123c" stroke="#e11d48" stroke-width="1.2" stroke-linejoin="round" />
+                <polygon points="10,17 15,17 19,22 14,22" fill="#ffffff" opacity="0.95" />
+              </g>
+            </svg></span>
+            <span class="tool-name">Gomme</span>
+          </button>
+        </div>
+        </div>
+
+        <div class="tool-divider"></div>
+
+        <div class="tool-group">
+        <div class="tool-group-label">Symétrie</div>
+        <button id="btn-mirror" class="toggle-tool" title="Miroir : ce que tu dessines est copié de l'autre côté !" aria-pressed="false">
+          <span class="tool-icon"><svg class="tool-svg" viewBox="0 0 32 32">
+            <path d="M13 6 L3 26 L13 26 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round" />
+            <path d="M19 6 L29 26 L19 26 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.5" stroke-linejoin="round" opacity="0.6" />
+            <line x1="16" y1="3" x2="16" y2="29" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3 2.5" stroke-linecap="round" />
+          </svg></span>
+          <span class="tool-name">Miroir : <b id="mirror-state">non</b></span>
+        </button>
+        </div>
+      </div>
+
+      <!-- Ligne du bas : Taille (un seul curseur entre un petit et un gros point) & Couleurs -->
+      <div class="dock-row dock-row-options">
+        <div class="thickness-group">
+          <div class="thickness-head">
+            <span class="thickness-title">Taille</span>
+            <span id="thickness-preview" class="thickness-preview" aria-hidden="true"></span>
+            <span id="label-global-thickness" class="thickness-value">20 mm</span>
+          </div>
+          <div class="size-slider" title="Fais glisser pour choisir la taille de ton trait ou de ta forme">
+            <button id="btn-thickness-min" class="thickness-end" type="button" data-size="12" aria-label="Le plus fin"><span class="dot dot-sm"></span></button>
+            <input type="range" id="input-global-thickness" min="12" max="45" step="1" value="20" aria-label="Taille">
+            <button id="btn-thickness-max" class="thickness-end" type="button" data-size="45" aria-label="Le plus gros"><span class="dot dot-lg"></span></button>
+          </div>
+        </div>
+
+        <div class="tool-divider"></div>
+
+        <div class="color-palette-group">
+          <div class="thickness-title">Couleur</div>
+          <div class="palette-colors">
+            <button class="color-swatch active" style="--c: #ff4757;" data-color="#ff4757" aria-label="Rouge"></button>
+            <button class="color-swatch" style="--c: #ffa502;" data-color="#ffa502" aria-label="Orange"></button>
+            <button class="color-swatch" style="--c: #f1c40f;" data-color="#f1c40f" aria-label="Jaune"></button>
+            <button class="color-swatch" style="--c: #2ed573;" data-color="#2ed573" aria-label="Vert"></button>
+            <button class="color-swatch" style="--c: #1e90ff;" data-color="#1e90ff" aria-label="Bleu"></button>
+            <button class="color-swatch" style="--c: #9b59b6;" data-color="#9b59b6" aria-label="Violet"></button>
+            <button class="color-swatch" style="--c: #ff6b81;" data-color="#ff6b81" aria-label="Rose"></button>
+            <button class="color-swatch" style="--c: #a0522d;" data-color="#a0522d" aria-label="Marron"></button>
+            <button class="color-swatch" style="--c: #747d8c;" data-color="#747d8c" aria-label="Gris"></button>
+            <button class="color-swatch" style="--c: #ffffff;" data-color="#ffffff" aria-label="Blanc"></button>
+            <button class="color-swatch" style="--c: #2f3542;" data-color="#2f3542" aria-label="Noir"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options du ballon pendant le dessin -->
+    <div id="balloon-options-dock" class="side-panel-right balloon-options-dock hidden">
+      <div class="panel-header">
+        <span class="sub-dock-title">🎈 Mon ballon</span>
+        <button id="btn-close-balloon" class="close-drawer-btn">✖</button>
+      </div>
+      <div class="edit-balloon-box">
+        <div class="opt-row"><span class="opt-name">Épaisseur</span><span id="lbl-draw-balloon-depth" class="opt-val">20 mm</span>
+          <input type="range" id="draw-balloon-depth" min="14" max="60" step="1" value="20" aria-label="Épaisseur du ballon"></div>
+        <div class="opt-row"><span class="opt-name">Bords arrondis</span><span id="lbl-draw-balloon-round" class="opt-val">30 %</span>
+          <input type="range" id="draw-balloon-round" min="0" max="100" step="1" value="30" aria-label="Bords arrondis"></div>
+        <div class="opt-row"><span class="opt-name">Contour lisse</span><span id="lbl-draw-balloon-smooth" class="opt-val">3</span>
+          <input type="range" id="draw-balloon-smooth" min="1" max="5" step="1" value="3" aria-label="Contour lisse"></div>
+        <button id="btn-draw-balloon-reset" class="reset-1-1" type="button" title="Revenir aux réglages d'origine">↺ Réglages d'origine</button>
+      </div>
+      <p class="proportions-hint">Ces réglages s'appliquent aux prochains ballons. Tu peux les changer ensuite avec « Bouger ».</p>
+    </div>
+
+    <!-- Sous-palette de profils pour Piliers & Arches -->
+    <div id="pillar-profiles-dock" class="side-panel-right pillar-profiles-dock hidden">
+      <div class="panel-header">
+        <span class="sub-dock-title">🏛️ Forme du pilier</span>
+        <button id="btn-close-pillar" class="close-drawer-btn">✖</button>
+      </div>
+      <div class="geo-items-grid">
+        <button class="profile-btn active" data-profile="square"><span class="item-icon">🔲</span><span class="item-name">Carré</span></button>
+        <button class="profile-btn" data-profile="hexagon"><span class="item-icon">⬡</span><span class="item-name">Hexagone</span></button>
+        <button class="profile-btn" data-profile="fluted"><span class="item-icon">🏛️</span><span class="item-name">Cannelé</span></button>
+        <button class="profile-btn" data-profile="wall"><span class="item-icon">🧱</span><span class="item-name">Mur</span></button>
+        <button class="profile-btn" data-profile="round"><span class="item-icon">⚪</span><span class="item-name">Rond</span></button>
+      </div>
+    </div>
+
+    <!-- Sous-palette de formes géométriques 3D avec contrôleur d'Échelle XYZ -->
+    <div id="geo-shapes-dock" class="side-panel-right geo-shapes-dock hidden">
+      <div class="panel-header">
+        <span class="sub-dock-title">🔷 Formes 3D</span>
+        <button id="btn-close-geo" class="close-drawer-btn">✖</button>
+      </div>
+      <div class="geo-items-grid">
+        <button class="geo-item active" data-stamp="cube">
+          <span class="item-icon">🟩</span>
+          <span class="item-name">Cube</span>
+        </button>
+        <button class="geo-item" data-stamp="sphere">
+          <span class="item-icon">🔴</span>
+          <span class="item-name">Sphère</span>
+        </button>
+        <button class="geo-item" data-stamp="cylinder">
+          <span class="item-icon">🥫</span>
+          <span class="item-name">Cylindre</span>
+        </button>
+        <button class="geo-item" data-stamp="cone">
+          <span class="item-icon">🔺</span>
+          <span class="item-name">Cône</span>
+        </button>
+        <button class="geo-item" data-stamp="torus">
+          <span class="item-icon">🍩</span>
+          <span class="item-name">Donut</span>
+        </button>
+        <button class="geo-item" data-stamp="pyramid">
+          <span class="item-icon">🔺</span>
+          <span class="item-name">Pyramide</span>
+        </button>
+      </div>
+
+      <!-- Proportions de la forme avant de la poser -->
+      <div id="placement-scale-3d-box" class="proportions-box proportions-open">
+        <div class="proportions-title">&#128208; Proportions</div>
+        <div class="proportions-head">
+          <button id="btn-toggle-placement-lock" class="lock-toggle on" type="button" aria-pressed="true" title="Lier ou délier les 3 axes">
+            <span class="lock-ico">&#128279;</span><span class="lock-text">Liés</span>
+          </button>
+          <button id="btn-reset-placement-scale" class="reset-1-1 is-default" type="button" title="Remettre la taille d'origine (1:1)">&#8634; Reset 1:1</button>
+        </div>
+        <div class="scale-row"><span class="axis-tag axis-x">Largeur</span><input type="range" id="scale-place-x" min="0.2" max="3" step="0.05" value="1" aria-label="Largeur"><span id="lbl-scale-place-x" class="scale-val">&times;1.0</span></div>
+        <div class="scale-row"><span class="axis-tag axis-y">Hauteur</span><input type="range" id="scale-place-y" min="0.2" max="3" step="0.05" value="1" aria-label="Hauteur"><span id="lbl-scale-place-y" class="scale-val">&times;1.0</span></div>
+        <div class="scale-row"><span class="axis-tag axis-z">Profondeur</span><input type="range" id="scale-place-z" min="0.2" max="3" step="0.05" value="1" aria-label="Profondeur"><span id="lbl-scale-place-z" class="scale-val">&times;1.0</span></div>
+        <p class="proportions-hint">Tu vois l'effet tout de suite sur l'aperçu dans la scène.</p>
+      </div>
+    </div>
+
+    <!-- Tiroir des Tampons Décoratifs -->
+    <div id="stamps-drawer" class="side-panel-right stamps-drawer hidden">
+      <div class="drawer-header">
+        <span>Choisis un tampon, puis clique sur ton dessin. Reste appuyé et glisse pour l'orienter !</span>
+        <button id="btn-close-stamps" class="close-drawer-btn">✖</button>
+      </div>
+
+      <div id="stamp-grid" class="stamp-group-pane active">
+        <button class="stamp-item active" data-stamp="eye_single"><span class="item-icon">👁️</span><span class="item-name">Œil</span></button>
+        <button class="stamp-item" data-stamp="eyes_cartoon"><span class="item-icon">👀</span><span class="item-name">Deux yeux</span></button>
+        <button class="stamp-item" data-stamp="mouth"><span class="item-icon">👄</span><span class="item-name">Bouche</span></button>
+        <button class="stamp-item" data-stamp="nose"><span class="item-icon">👃</span><span class="item-name">Nez</span></button>
+        <button class="stamp-item" data-stamp="ear"><span class="item-icon">👂</span><span class="item-name">Oreille</span></button>
+        <button class="stamp-item" data-stamp="hand"><span class="item-icon">✋</span><span class="item-name">Main</span></button>
+        <button class="stamp-item" data-stamp="foot"><span class="item-icon">👟</span><span class="item-name">Pied</span></button>
+        <button class="stamp-item" data-stamp="wings"><span class="item-icon">🪽</span><span class="item-name">Ailes</span></button>
+        <button class="stamp-item" data-stamp="horns"><span class="item-icon">🐂</span><span class="item-name">Cornes</span></button>
+        <button class="stamp-item" data-stamp="antenna"><span class="item-icon">👽</span><span class="item-name">Antenne</span></button>
+        <button class="stamp-item" data-stamp="tail"><span class="item-icon">🐈</span><span class="item-name">Queue</span></button>
+        <button class="stamp-item" data-stamp="bow"><span class="item-icon">🎀</span><span class="item-name">Nœud</span></button>
+        <button class="stamp-item" data-stamp="crown"><span class="item-icon">👑</span><span class="item-name">Couronne</span></button>
+        <button class="stamp-item" data-stamp="cone_hat"><span class="item-icon">🧙</span><span class="item-name">Chapeau</span></button>
+        <button class="stamp-item" data-stamp="heart"><span class="item-icon">❤️</span><span class="item-name">Cœur</span></button>
+        <button class="stamp-item" data-stamp="star"><span class="item-icon">⭐</span><span class="item-name">Étoile</span></button>
+        <button class="stamp-item" data-stamp="flower"><span class="item-icon">🌸</span><span class="item-name">Fleur</span></button>
+        <button class="stamp-item" data-stamp="wheel"><span class="item-icon">🛞</span><span class="item-name">Roue</span></button>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL ENSEIGNANT -->
+  <div id="modal-teacher" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🎓 Espace Professeur & Paramètres d'Impression 3D</h2>
+        <button class="modal-close-btn" data-close="modal-teacher">✖</button>
+      </div>
+
+      <div id="teacher-lock-screen" class="teacher-view hidden">
+        <p class="lock-instruction">Entrez le code enseignant pour accéder aux paramètres :</p>
+        <div class="pin-display">
+          <input type="password" id="teacher-pin-input" maxlength="4" placeholder="••••" autocomplete="off">
+        </div>
+        <p class="pin-hint">Code par défaut : <strong>1234</strong></p>
+        <div class="modal-actions">
+          <button id="btn-verify-pin" class="pill-btn primary-btn">Déverrouiller</button>
+        </div>
+      </div>
+
+      <div id="teacher-content" class="teacher-view">
+        <div class="teacher-tabs">
+          <button class="tab-btn active" data-tab="tab-print">🖨️ Imprimante 3D</button>
+          <button class="tab-btn" data-tab="tab-pedagogy">🎨 Outils & Pédagogie</button>
+          <button class="tab-btn" data-tab="tab-guide">📖 Fiche Trancheur</button>
+        </div>
+
+        <div id="tab-print" class="tab-pane active">
+          <div class="settings-row">
+            <label for="setting-bed-size">Dimensions du plateau d'impression (mm) :</label>
+            <select id="setting-bed-size">
+              <option value="120">Petite (120 x 120 x 120 mm) - Ex: Dagoma / Toybox</option>
+              <option value="180">Moyenne (180 x 180 x 180 mm) - Ex: Prusa Mini</option>
+              <option value="220">Standard (220 x 220 x 250 mm) - Ex: Ender 3 / Bambu A1</option>
+              <option value="256" selected>Grande (256 x 256 x 256 mm) - Ex: Bambu Lab X1/P1</option>
+              <option value="300">Très grande (300 x 300 x 300 mm) - Ex: Creality CR-10 / Ender 5 Plus</option>
+              <option value="400">Géante (400 x 400 x 400 mm) - Ex: Prusa XL / Voron 400</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label for="setting-work-scale">Espace de création (échelle d'impression) :</label>
+            <select id="setting-work-scale">
+              <option value="1" selected>Normal : 1 mm dessiné = 1 mm imprimé</option>
+              <option value="1.5">Plus grand : ×1,5 (imprimé 1,5 fois plus petit)</option>
+              <option value="2">Grand : ×2 (imprimé 2 fois plus petit)</option>
+              <option value="3">Très grand : ×3 (imprimé 3 fois plus petit)</option>
+            </select>
+            <small class="settings-hint">Agrandit l'espace pour dessiner. À l'export, le modèle est réduit automatiquement à la taille réelle du plateau, et les épaisseurs de sécurité sont respectées.</small>
+          </div>
+
+          <div class="settings-row">
+            <label for="setting-min-thickness">Épaisseur minimale de sécurité pour l'enfant :</label>
+            <select id="setting-min-thickness">
+              <option value="8">8 mm (Ultra robuste, idéal 6-7 ans)</option>
+              <option value="5" selected>5 mm (Recommandé, évite les casses au décollement)</option>
+              <option value="3">3 mm (Fin, pour enfants plus précis)</option>
+            </select>
+          </div>
+
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-truncate-bed" checked>
+              <span>Couper les modèles au niveau de la table d'impression (recommandé : fond plat, rien ne dépasse dessous)</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-auto-base">
+              <span>Générer automatiquement un socle d'impression plat sous la figurine</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-show-grid" checked>
+              <span>Afficher le plateau d'impression sous forme de grille 3D</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-invert-pan">
+              <span>Inverser le sens de déplacement du Pan horizontal (Gauche / Droite)</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="tab-pedagogy" class="tab-pane">
+          <div class="toggle-list">
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-tool-balloon" checked>
+              <span>Outil Ballon Gonflé</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-tool-pillar" checked>
+              <span>Outil Pilier Droit</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-tool-shapes" checked>
+              <span>Formes Géométriques 3D (Cubes, Cônes...)</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-tool-stamps" checked>
+              <span>Tampons décoratifs (Visages, Déco)</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-tool-edit" checked>
+              <span>Outil Modifier (Mode Édition)</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="toggle-sound-effects" checked>
+              <span>Effets sonores</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label for="setting-ui-scale">Taille de l'interface (boutons et textes) :</label>
+            <select id="setting-ui-scale">
+              <option value="auto" selected>Automatique (s'adapte à l'écran)</option>
+              <option value="0.8">Petite</option>
+              <option value="1">Normale</option>
+              <option value="1.2">Grande</option>
+              <option value="1.4">Très grande (écran tactile, jeunes enfants)</option>
+            </select>
+          </div>
+
+          <div class="settings-row" style="margin-top: 18px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="setting-enable-pin">
+              <span>Verrouiller l'accès prof avec un code secret</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label for="setting-new-pin">Changer le code secret (si activé) :</label>
+            <input type="text" id="setting-new-pin" maxlength="6" placeholder="Ex: 1234">
+          </div>
+        </div>
+
+        <div id="tab-guide" class="tab-pane">
+          <div class="guide-box">
+            <h4>💡 Recommandations pour l'impression en classe :</h4>
+            <ul>
+              <li><strong>Matière :</strong> PLA recommandé (non toxique, sans odeur).</li>
+              <li><strong>Hauteur de couche :</strong> 0.20 mm ou 0.28 mm (mode rapide).</li>
+              <li><strong>Remplissage :</strong> 10% à 15% (suffisant pour des jouets).</li>
+              <li><strong>Supports :</strong> Supports arborescents (Tree supports) si les bras sont dans le vide.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-save-teacher-settings" class="pill-btn primary-btn">Enregistrer les réglages</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EXPORT 3D -->
+  <div id="modal-export" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>🎉 Bravo ! Prêt pour l'Impression 3D !</h2>
+        <button class="modal-close-btn" data-close="modal-export">✖</button>
+      </div>
+
+      <div class="export-preview-area">
+        <div class="export-stats">
+          <div class="stat-box">
+            <span class="stat-number" id="stat-elements-count">0</span>
+            <span class="stat-label">Parties 3D</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number" id="stat-size-estimate">0 x 0 mm</span>
+            <span class="stat-label">Dimensions réelles</span>
+          </div>
+          <div class="stat-box success">
+            <span class="stat-number">100%</span>
+            <span class="stat-label">Manifold Étanche</span>
+          </div>
+        </div>
+
+        <p id="export-scale-note" class="export-scale-note hidden"></p>
+
+        <div class="export-quality-container">
+          <div class="quality-label">Finition de surface & Topologie :</div>
+          <div class="quality-choice-group">
+            <label class="quality-card active">
+              <input type="radio" name="export-quality" value="smooth" checked>
+              <div class="quality-text">
+                <span class="q-title">✨ Lisse & Haute Définition</span>
+                <span class="q-desc">Surface dense et ultra-lisse (recommandé pour impression 3D)</span>
+              </div>
+            </label>
+            <label class="quality-card">
+              <input type="radio" name="export-quality" value="lowpoly">
+              <div class="quality-text">
+                <span class="q-title">🧊 Topologie Épurée (Pour Blender)</span>
+                <span class="q-desc">Quads réguliers légers optimisés pour Subdivision (Ctrl+2) ou Remesh</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="export-options-list">
+          <div class="export-card primary">
+            <div class="export-card-icon">🖨️</div>
+            <div class="export-card-content">
+              <h3>Fichier STL (Pour l'imprimante 3D)</h3>
+              <p>Format binaire 100% étanche compatible Cura, Bambu Studio, PrusaSlicer, Toybox, etc.</p>
+            </div>
+            <button id="btn-download-stl" class="pill-btn primary-btn">Télécharger .STL</button>
+          </div>
+
+          <div class="export-card">
+            <div class="export-card-icon">🎨</div>
+            <div class="export-card-content">
+              <h3>Fichier OBJ avec Couleurs</h3>
+              <p>Pour Paint 3D, Blender ou impression multicolore.</p>
+            </div>
+            <button id="btn-download-obj" class="pill-btn secondary-btn">Télécharger .OBJ</button>
+          </div>
+
+          <div class="export-card">
+            <div class="export-card-icon">💾</div>
+            <div class="export-card-content">
+              <h3>Sauvegarder le Projet</h3>
+              <p>Enregistre le dessin pour pouvoir le rouvrir plus tard.</p>
+            </div>
+            <div class="project-actions">
+              <button id="btn-save-project" class="pill-btn secondary-btn">Sauvegarder .kid3d</button>
+              <label class="pill-btn secondary-btn upload-label" for="input-load-project">
+                Ouvrir un projet
+                <input type="file" id="input-load-project" accept=".kid3d,application/json" class="hidden-input">
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/ui/sound.js?v=36"></script>
+  <script src="js/engine/curves.js?v=36"></script>
+  <script src="js/engine/meshGen.js?v=36"></script>
+  <script src="js/engine/scene.js?v=36"></script>
+  <script src="js/engine/cameraController.js?v=36"></script>
+  <script src="js/engine/gizmo.js?v=36"></script>
+  <script src="js/engine/transformHandles.js?v=36"></script>
+  <script src="js/engine/editMode.js?v=36"></script>
+  <script src="js/engine/exporter.js?v=36"></script>
+  <script src="js/ui/teacherModal.js?v=36"></script>
+  <script src="js/app.js?v=36"></script>
+</body>
+</html>

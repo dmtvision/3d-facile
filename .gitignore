@@ -1,0 +1,10 @@
+# Fichiers de synchronisation Dreamweaver
+_notes/
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
