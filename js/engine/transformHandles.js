@@ -296,8 +296,8 @@ class TransformHandles {
   onDown(e, def) {
     const el = this.els[def.id];
 
-    // Clic droit / milieu : c'est de la navigation, la caméra prend la main
-    if (e.button !== 0) {
+    // Clic droit / milieu (ou Alt + glisser) : c'est de la navigation, la caméra prend la main
+    if (e.button !== 0 || e.altKey) {
       if (this.app.cameraController.onPointerDown(e)) {
         e.preventDefault();
         el.setPointerCapture(e.pointerId);

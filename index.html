@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=36">
+  <link rel="stylesheet" href="css/style.css?v=47">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -110,8 +110,9 @@
       <details class="mouse-hints">
         <summary>🖱️ Astuces souris</summary>
         <span>Clic droit : pivoter</span>
-        <span>Clic milieu : déplacer</span>
-        <span>Molette : zoomer</span>
+        <span>Clic milieu ou Alt + glisser : déplacer</span>
+        <span>Molette ou Maj + glisser : zoomer</span>
+        <span>Ctrl + clic sur une forme : la modifier</span>
       </details>
     </div>
 
@@ -431,6 +432,13 @@
 
           <div class="settings-row">
             <label class="checkbox-label">
+              <input type="checkbox" id="setting-boolean-preview" checked>
+              <span>Aperçu en direct des trous (formes « Creuser ») : décocher si l'ordinateur ralentit</span>
+            </label>
+          </div>
+
+          <div class="settings-row">
+            <label class="checkbox-label">
               <input type="checkbox" id="setting-auto-base">
               <span>Générer automatiquement un socle d'impression plat sous la figurine</span>
             </label>
@@ -609,16 +617,18 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/ui/sound.js?v=36"></script>
-  <script src="js/engine/curves.js?v=36"></script>
-  <script src="js/engine/meshGen.js?v=36"></script>
-  <script src="js/engine/scene.js?v=36"></script>
-  <script src="js/engine/cameraController.js?v=36"></script>
-  <script src="js/engine/gizmo.js?v=36"></script>
-  <script src="js/engine/transformHandles.js?v=36"></script>
-  <script src="js/engine/editMode.js?v=36"></script>
-  <script src="js/engine/exporter.js?v=36"></script>
-  <script src="js/ui/teacherModal.js?v=36"></script>
-  <script src="js/app.js?v=36"></script>
+  <script src="js/ui/sound.js?v=47"></script>
+  <script src="js/engine/curves.js?v=47"></script>
+  <script src="js/engine/meshGen.js?v=47"></script>
+  <script src="js/engine/scene.js?v=47"></script>
+  <script src="js/engine/cameraController.js?v=47"></script>
+  <script src="js/engine/gizmo.js?v=47"></script>
+  <script src="js/engine/transformHandles.js?v=47"></script>
+  <script src="js/engine/editMode.js?v=47"></script>
+  <script src="js/engine/csg.js?v=47"></script>
+  <script src="js/engine/exporter.js?v=47"></script>
+  <script src="js/engine/booleanPreview.js?v=47"></script>
+  <script src="js/ui/teacherModal.js?v=47"></script>
+  <script src="js/app.js?v=47"></script>
 </body>
 </html>

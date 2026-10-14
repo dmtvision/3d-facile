@@ -112,6 +112,10 @@ class EditModeManager {
           <button id="btn-edit-lock" class="edit-lock-btn" type="button" title="Verrouiller la forme pour ne plus la déplacer par erreur">
             <span class="lock-ico">&#128274;</span><span class="lock-label">Verrouiller</span>
           </button>
+          <button id="btn-edit-cutter" class="edit-lock-btn edit-cutter-btn" type="button" title="Cette forme devient un trou : elle retire de la matière aux autres formes qu'elle traverse (visible à l'impression)">
+            <span class="lock-ico">&#128371;&#65039;</span><span class="lock-label">Creuser les autres formes</span>
+          </button>
+          <div id="edit-cutter-hint" class="edit-cutter-hint">Cette forme est un trou : elle ne sera pas imprimée mais creusera les formes qu'elle traverse.</div>
           </div>
           <div class="edit-col">
           <div class="edit-controls">
@@ -398,6 +402,19 @@ class EditModeManager {
       this.app.showToast(lock ? '🔒 Verrouillé : cette forme ne bougera plus.' : '🔓 Déverrouillé.');
     });
 
+    // Trou (booléen) : la forme retire de la matière aux autres à l'export
+    document.getElementById('btn-edit-cutter').addEventListener('click', () => {
+      if (!this.selection.length) return;
+      const on = !this.selection.every(m => m.userData.cutter);
+      this.selection.forEach(m => this.app.setCutter(m, on));
+      this.refreshSelectionUI();
+      this.commitChange();
+      if (window.soundFx) window.soundFx.playPop();
+      this.app.showToast(on
+        ? '🕳️ Trou ! Cette forme creusera les autres (elle ne sera pas imprimée).'
+        : '🧱 Forme pleine : elle sera imprimée.');
+    });
+
     document.getElementById('btn-edit-delete').addEventListener('click', () => {
       const targets = this.getTargets();
       if (!this.selection.length) return;
@@ -631,6 +648,18 @@ class EditModeManager {
         ? (n > 1 ? 'Déverrouiller les formes' : 'Déverrouiller')
         : (n > 1 ? 'Verrouiller les formes' : 'Verrouiller');
     }
+
+    const allCutter = this.selection.every(m => m.userData.cutter);
+    const cutBtn = document.getElementById('btn-edit-cutter');
+    if (cutBtn) {
+      cutBtn.classList.toggle('is-on', allCutter);
+      cutBtn.querySelector('.lock-ico').textContent = allCutter ? '\u{1F9F1}' : '\u{1F573}\uFE0F';
+      cutBtn.querySelector('.lock-label').textContent = allCutter
+        ? (n > 1 ? 'Redevenir des formes pleines' : 'Redevenir une forme pleine')
+        : (n > 1 ? 'Creuser avec ces formes' : 'Creuser les autres formes');
+    }
+    const cutHint = document.getElementById('edit-cutter-hint');
+    if (cutHint) cutHint.style.display = allCutter ? 'block' : 'none';
 
     // Si la sélection devient verrouillée, les points de modelage disparaissent
     if (allLocked) {

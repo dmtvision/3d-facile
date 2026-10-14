@@ -68,6 +68,8 @@ class Kidi3DApp {
     this.orientationGizmo = new OrientationGizmo(this.cameraController, 'gizmo-container');
     this.teacherController = new TeacherController(this);
     this.editManager = new EditModeManager(this);
+    this.booleanPreview = new BooleanPreview(this);
+    this.booleanPreview.setEnabled(this.teacherController.settings.booleanPreview !== false);
 
     this.setupDrawingOverlay();
     this.bindUI();
@@ -114,7 +116,9 @@ class Kidi3DApp {
       return;
     }
 
-    if (this.cameraController.onPointerDown(e)) {
+    // Maj + glisser zoome, sauf en mode « Bouger » quand on vise une forme (Maj + clic = sélection multiple)
+    const overShape = e.shiftKey && this.currentTool === 'edit' && !!this.getTopLevelMeshAt({ x: e.clientX, y: e.clientY });
+    if (this.cameraController.onPointerDown(e, { shiftZoom: !overShape })) {
       this.overlayCanvas.setPointerCapture(e.pointerId);
       return;
     }
@@ -123,6 +127,17 @@ class Kidi3DApp {
     this.overlayCanvas.setPointerCapture(e.pointerId);
 
     const pt = { x: e.clientX, y: e.clientY, shift: e.shiftKey };
+
+    // Ctrl + clic sur une forme : on passe en mode « Bouger » et on la sélectionne, quel que soit l'outil
+    if (e.ctrlKey && this.currentTool !== 'edit') {
+      const target = this.getTopLevelMeshAt(pt);
+      if (target) {
+        const editBtn = document.querySelector('.magic-tool-btn[data-tool="edit"]');
+        if (editBtn) editBtn.click();
+        this.editManager.selectMesh(target, e.shiftKey);
+      }
+      return;
+    }
 
     if (this.currentTool === 'edit') {
       this.editManager.handlePointerDown(pt);
@@ -301,12 +316,45 @@ class Kidi3DApp {
 
   // Copie complète d'un objet (géométrie partagée, matériaux et données indépendants)
   cloneUserMesh(src) {
+    const wasCutter = !!src.userData.cutter;
+    if (wasCutter) this.setCutterLook(src, false); // on copie la vraie matière, pas l'aperçu rouge
     const copy = src.clone(true);
     copy.traverse(c => {
       if (c.isMesh && c.material) c.material = c.material.clone();
     });
     copy.userData = JSON.parse(JSON.stringify(src.userData));
+    if (wasCutter) {
+      this.setCutterLook(src, true);
+      this.setCutterLook(copy, true);
+    }
     return copy;
+  }
+
+  // --- Formes « trou » : elles ne s'impriment pas, elles creusent les autres formes à l'export ---
+  setCutterLook(mesh, on) {
+    mesh.traverse(c => {
+      if (!c.isMesh || !c.material) return;
+      if (on && !c.__solidMat) {
+        c.__solidMat = c.material;
+        c.material = new THREE.MeshStandardMaterial({
+          color: 0xef4444, roughness: 0.6, transparent: true, opacity: 0.45, depthWrite: false,
+          // le fantôme coïncide avec la paroi creusée : on le tire un peu vers la caméra pour éviter le scintillement
+          polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -30
+        });
+        c.renderOrder = 10;
+      } else if (!on && c.__solidMat) {
+        c.material.dispose();
+        c.renderOrder = 0;
+        c.material = c.__solidMat;
+        c.__solidMat = null;
+      }
+    });
+  }
+
+  setCutter(mesh, on) {
+    if (on) { mesh.userData.cutter = true; if (window.CSGLib) CSGLib.preload(); } else delete mesh.userData.cutter;
+    this.setCutterLook(mesh, on);
+    this.updateBaseIfActive();
   }
 
   updateStampGhost(targetPtOrCoords, rotation = null, isDirectPoint = false) {
@@ -765,6 +813,7 @@ class Kidi3DApp {
   }
 
   addMeshToScene(mesh) {
+    if (mesh.userData.cutter) { this.setCutterLook(mesh, true); if (window.CSGLib) CSGLib.preload(); }
     this.sceneManager.modelGroup.add(mesh);
     this.userMeshes.push(mesh);
     this.updateBaseIfActive();
@@ -821,8 +870,9 @@ class Kidi3DApp {
       this.baseMesh = null;
     }
 
-    if (this.userMeshes.length > 0) {
-      this.baseMesh = MeshGenerator.createPrintBase(this.userMeshes, 15 * this.workScale, 3.5 * this.workScale);
+    const solids = this.userMeshes.filter(m => !m.userData.cutter); // un trou n'est pas imprimé : pas de socle pour lui
+    if (solids.length > 0) {
+      this.baseMesh = MeshGenerator.createPrintBase(solids, 15 * this.workScale, 3.5 * this.workScale);
       if (this.baseMesh) {
         this.sceneManager.modelGroup.add(this.baseMesh);
       }
@@ -853,7 +903,8 @@ class Kidi3DApp {
     if (mesh && mesh.userData.locked) mesh = null; // une forme verrouillée ne devient pas rouge
     if (this.hoverEraseMesh === mesh) return;
     const setEmissive = (m, hex) => m && m.traverse(c => {
-      if (c.isMesh && c.material && c.material.emissive) c.material.emissive.setHex(hex);
+      const mat = c.isMesh && (this.booleanPreview ? this.booleanPreview.matOf(c) : c.material);
+      if (mat && mat.emissive) mat.emissive.setHex(hex);
     });
     setEmissive(this.hoverEraseMesh, 0x000000);
     this.hoverEraseMesh = mesh;
@@ -938,6 +989,7 @@ class Kidi3DApp {
         }
         if (el.scale) mesh.scale.set(el.scale.x, el.scale.y, el.scale.z);
         if (el.locked) mesh.userData.locked = true;
+        if (el.cutter) mesh.userData.cutter = true;
         this.addMeshToScene(mesh);
       }
     });
@@ -1266,7 +1318,9 @@ class Kidi3DApp {
 
         if (this.currentTool === 'edit' && this.editManager.selectedMesh) {
           const sel = this.editManager.selectedMesh;
-          if (sel.material) {
+          if (sel.userData.cutter) {
+            this.showToast("🕳️ Un trou n'a pas de couleur : il est rouge pour le repérer.");
+          } else if (sel.material) {
             sel.material.color.setHex(this.currentColor);
             sel.userData.color = this.currentColor;
             this.saveStateForUndo();
@@ -1349,7 +1403,7 @@ class Kidi3DApp {
       const exportList = [...this.userMeshes];
       if (this.baseMesh) exportList.push(this.baseMesh);
       else if (this.teacherController.settings.autoBase) {
-        const tempBase = MeshGenerator.createPrintBase(this.userMeshes, 15 * this.workScale, 3.5 * this.workScale);
+        const tempBase = MeshGenerator.createPrintBase(this.userMeshes.filter(m => !m.userData.cutter), 15 * this.workScale, 3.5 * this.workScale);
         if (tempBase) exportList.push(tempBase);
       }
 

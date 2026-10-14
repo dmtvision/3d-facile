@@ -9,6 +9,7 @@ class Exporter3D {
    * Calcule les dimensions totales de la création en millimètres
    */
   static getModelDimensions(meshes) {
+    meshes = this.solids(meshes);
     if (!meshes || meshes.length === 0) {
       return { width: 0, depth: 0, height: 0, count: 0 };
     }
@@ -43,6 +44,7 @@ class Exporter3D {
    * SANS AUCUNE MODIFICATION des objets réels de la scène 3D.
    */
   static getExportTransform(meshes, autoFit = true, bedSize = 180, maxHeight = null, userScale = 1, truncate = false) {
+    meshes = this.solids(meshes);
     maxHeight = maxHeight || bedSize;
     if (!meshes || meshes.length === 0) {
       return { scale: 1.0, cx: 0, cz: 0, minY: 0, autoFit: false };
@@ -333,7 +335,57 @@ class Exporter3D {
     return out;
   }
 
+  // ------------------------------------------------------------------ formes « trou » (booléen : soustraction)
+  static isCutter(m) { return !!(m && m.userData && m.userData.cutter); }
+
+  /** Les formes qui restent dans le modèle (les trous ne s'impriment pas). */
+  static solids(meshes) { return (meshes || []).filter(m => !this.isCutter(m)); }
+
+  /** Triangles monde de toutes les formes « trou » visibles. */
+  static collectCutters(meshes, quality) {
+    const out = [];
+    (meshes || []).forEach(m => {
+      if (!this.isCutter(m) || !m.visible) return;
+      m.updateWorldMatrix(true, true);
+      this.getGeometriesForExport(m, quality).forEach(item => {
+        const tris = this.worldTriangles(item.geometry, item.matrixWorld);
+        if (item.isTemporary) item.geometry.dispose();
+        if (tris.length) out.push({ tris, box: CSGLib.boxOf(tris) });
+      });
+    });
+    return out;
+  }
+
+  /** Triangles monde de la pièce une fois creusée, ou null si aucun trou ne la touche. */
+  static carveItem(geo, matrixWorld) {
+    if (!this._cutters || !this._cutters.length || !window.CSGLib) return null;
+    let tris = this.worldTriangles(geo, matrixWorld);
+    const box = CSGLib.boxOf(tris);
+    const hits = this._cutters.filter(c => c.box.intersectsBox(box));
+    if (!hits.length) return null;
+    hits.forEach(c => { tris = CSGLib.subtract(tris, c.tris); });
+    return tris;
+  }
+
   static exportSTLBinary(meshes, filename = 'Export3D.stl', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
+    this._cutters = this.collectCutters(meshes, quality);
+    try {
+      return this._exportSTLBinary(this.solids(meshes), filename, autoFit, bedSize, quality, userScale, truncate);
+    } finally {
+      this._cutters = null;
+    }
+  }
+
+  static exportOBJ(meshes, filename = 'Export3D.obj', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
+    this._cutters = this.collectCutters(meshes, quality);
+    try {
+      return this._exportOBJ(this.solids(meshes), filename, autoFit, bedSize, quality, userScale, truncate);
+    } finally {
+      this._cutters = null;
+    }
+  }
+
+  static _exportSTLBinary(meshes, filename = 'Export3D.stl', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
     if (!meshes || meshes.length === 0) return false;
 
     // Calcul de la transformation virtuelle d'exportation
@@ -367,8 +419,11 @@ class Exporter3D {
         const flip = subMat.determinant() < 0; // Objet avec échelle négative (ex: miroir)
 
         // Pièce qui descend sous la table : on la coupe au niveau de la table et on referme le fond
-        if (truncate && this.dipsBelowTable(geo, subMat)) {
-          this.truncateAtTable(this.worldTriangles(geo, subMat)).forEach(tri => {
+        const carved = this.carveItem(geo, subMat);
+        if (carved || (truncate && this.dipsBelowTable(geo, subMat))) {
+          let worldTris = carved || this.worldTriangles(geo, subMat);
+          if (truncate) worldTris = this.truncateAtTable(worldTris);
+          worldTris.forEach(tri => {
             vA.copy(tri[0]); vB.copy(tri[1]); vC.copy(tri[2]);
             applyTransform(vA);
             applyTransform(vB);
@@ -506,7 +561,7 @@ class Exporter3D {
   /**
    * Exporte au format OBJ avec topologie propre
    */
-  static exportOBJ(meshes, filename = 'Export3D.obj', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
+  static _exportOBJ(meshes, filename = 'Export3D.obj', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
     if (!meshes || meshes.length === 0) return false;
 
     const transform = this.getExportTransform(meshes, autoFit, bedSize, null, userScale, truncate);
@@ -527,8 +582,10 @@ class Exporter3D {
         const flip = mat.determinant() < 0;
 
         // Pièce qui descend sous la table : coupée au niveau de la table, fond refermé (sommets partagés)
-        if (truncate && this.dipsBelowTable(geo, mat)) {
-          const tris = this.truncateAtTable(this.worldTriangles(geo, mat));
+        const carved = this.carveItem(geo, mat);
+        if (carved || (truncate && this.dipsBelowTable(geo, mat))) {
+          let tris = carved || this.worldTriangles(geo, mat);
+          if (truncate) tris = this.truncateAtTable(tris);
           const keyToIdx = new Map();
           const vtx = new THREE.Vector3();
           let faces = '';

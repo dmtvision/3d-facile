@@ -1,66 +1,55 @@
-# 🪄 Kidi3D V3 - Logiciel de Dessin 3D Magique pour Enfants & Impression 3D
+# 🪄 3D-Facile — atelier de dessin 3D pour enfants (4-10 ans)
 
-Application web légère, intuitive et robuste conçue pour les enfants de 6 à 10 ans, prête à être déposée sur votre serveur web.
+Application web sans installation (JavaScript + Three.js r128, aucun outil de build) : l'enfant dessine en 3D et
+exporte son modèle en **STL / OBJ** pour l'imprimer. Il suffit de déposer le dossier sur un serveur web
+(ou de lancer un petit serveur local) et d'ouvrir `index.html`.
 
----
+## Outils
 
-## 🆕 Version 5 - Simplifiée pour les 4-10 ans
+| Groupe | Outils |
+|---|---|
+| Dessiner | **Trait** (boudin 3D), **Ballon** (forme gonflée, avec épaisseur / bords / lissage réglables) |
+| Construire | **Formes** (cube, sphère…, proportions réglables), **Pilier**, **Tampon** (yeux, couronne, cornes, ailes…) |
+| Modifier | **Bouger** (poignées, flèches, rotations, copie, verrouillage, trou), **Gomme** |
+| Symétrie | **Miroir** : on dessine d'un côté, l'autre se fait tout seul |
 
-- **Sphère d'orientation** agrandie : les lettres X / Y / Z ne sont plus coupées et sont dessinées par-dessus les axes.
-- **Interface plus lisible** : gros boutons avec mots simples (Annuler, Tout effacer, Imprimer mon dessin, Trait, Ballon, Pilier, Tampon, Bouger, Gomme), dock du bas sur deux rangées (outils / taille + couleurs), onglets et tampons en grosses tuiles.
-- **Outil Miroir** 🪞 : dessine d'un côté, la copie symétrique apparaît de l'autre (traits, ballons, piliers, tampons). Un plan doré montre l'axe de symétrie.
-- **Gomme** : la forme visée devient rouge avant d'être effacée.
-- **Bouger** : le panneau de commandes se place à côté de la forme (plus jamais dessus), avec des libellés écrits, plus *Copier* 👯 et *Retourner* ↔️. Chaque action est annulable.
-- **Annuler / Refaire** grisés quand ils sont inutiles, raccourcis `Ctrl+Z` / `Ctrl+Y`.
-- Textes d'aide simplifiés avec pictogrammes.
+## Souris et raccourcis
 
----
+| Action | Geste |
+|---|---|
+| Pivoter la vue | Clic droit + glisser |
+| Déplacer la vue | Clic milieu + glisser, ou **Alt** + glisser |
+| Zoomer | Molette, ou **Maj** + glisser (haut = s'approcher) |
+| Modifier une forme (quel que soit l'outil) | **Ctrl** + clic sur la forme |
+| Sélectionner plusieurs formes | **Maj** + clic (en mode Bouger) |
+| Annuler / Refaire | `Ctrl+Z` / `Ctrl+Y` |
 
-## ✨ Nouveautés de la Version 3
+## Formes « trou » (booléen)
 
-1. **Vue de Face Droite par Défaut :**
-   - La caméra regarde désormais la scène bien de face, permettant de construire des personnages et des bâtiments debout et stables sur le lit d'impression 3D sans effet penché.
+Dans le popup de *Bouger*, le bouton **Creuser les autres formes** transforme la forme en trou : elle apparaît en rouge
+translucide, n'est pas imprimée et retire de la matière à toutes les formes qu'elle traverse. L'aperçu du résultat
+est calculé en direct quand la scène est au repos (réglage enseignant : *Aperçu en direct des trous*). L'export STL/OBJ
+applique toujours la soustraction (moteur [manifold-3d](https://github.com/elalish/manifold), chargé depuis un CDN,
+avec une découpe de secours intégrée si le moteur n'est pas disponible).
 
-2. **Sphère d'Orientation 3D (Gizmo XYZ Interactif) :**
-   - Une mini-sphère 3D stylisée dans le panneau de gauche affiche en temps réel les 3 axes colorés :
-     - 🔴 **Axe X (Rouge)** : Droite / Gauche
-     - 🟢 **Axe Y (Vert)** : Haut / Bas
-     - 🔵 **Axe Z (Bleu)** : Devant / Derrière
-   - L'enfant peut faire pivoter le monde 3D en glissant directement son doigt ou sa souris sur cette sphère.
+## Réglages enseignant (⚙️)
 
-3. **D-Pad Ergonomique en Croix :**
-   - Disposition logique type manette de jeu :
-     - ⬆️ **Haut** / ⬇️ **Bas** / ⬅️ **Gauche** / ➡️ **Droite**
-     - Au centre : **`➕` Zoom avant** (au-dessus) et **`➖` Zoom arrière** (en-dessous).
+Taille du plateau (120 à 400 mm), échelle de travail (plus de place pour créer, l'export est ramené à la taille réelle),
+taille de l'interface, épaisseur minimale, coupe des modèles au niveau de la table (activée par défaut), socle automatique,
+aperçu des trous, outils visibles, code PIN.
 
-4. **Navigation Souris Complète :**
-   - **Molette :** Zoom avant / arrière progressif.
-   - **Clic Milieu + Glisser :** Rotation orbitale 3D directe de la scène.
-   - **Clic Droit + Glisser :** Déplacement latéral / vertical libre (Pan).
+## Export
 
-5. **Outil Ballon Gonflé Biseauté (100% Manifold) :**
-   - Dès qu'un contour fermé est tracé, il se transforme en une forme solide extrudée avec un **biseau doux arrondi** et une épaisseur solide garantie pour l'impression 3D.
+Un seul bouton **Imprimer mon dessin** : `Export3D.stl` ou `Export3D.obj`, modèle étanche (2-manifold), posé à plat sur la table.
+Le projet peut aussi être sauvegardé / rouvert (`.kid3d`). L'autosauvegarde utilise le stockage local du navigateur.
 
-6. **Piliers & Murs Droits Biseautés :**
-   - Piliers verticaux bien droits, coupés plats à la base ($Y=0$) et au sommet, avec angles biseautés doux.
+## Organisation du code
 
-7. **Aperçu Fantôme (Ghost) & Rotation au Posé :**
-   - Au survol avec l'outil Tampon, un fantôme translucide montre l'emplacement exact et s'aligne automatiquement perpendiculaire à la surface.
-   - En maintenant le clic enfoncé et en bougeant la souris, on fait pivoter le tampon avant de le poser définitivement.
-
-8. **Mode Modification avec Halo & Widget Ancré :**
-   - L'objet sélectionné est entouré d'un **halo néon cyan éclatant**.
-   - Les commandes de modification (grandir, rétrécir, monter, descendre, tourner, supprimer) s'affichent **directement autour de l'objet sélectionné** et le suivent à l'écran.
-
-9. **Alternance Automatique des Couleurs :**
-   - Chaque nouvel objet prend automatiquement une couleur distincte dans un nuancier harmonieux pour différencier facilement les membres et parties du corps.
-
-10. **Biseau Systématique :**
-    - Tous les cubes, piliers et formes à angles saillants intègrent un biseau doux pour éviter les arêtes vives à l'impression 3D.
-
----
-
-## 🚀 Déploiement
-
-Transférez simplement le contenu du dossier `draw-soft` vers votre serveur web (Apache, Nginx, cPanel, OVH, etc.).
-- Aucun backend requis (100% HTML5 / CSS3 / JavaScript Vanilla ES6 + Three.js).
+```
+index.html            interface
+css/style.css         styles (sections par version)
+js/app.js             application, outils, sauvegarde, export
+js/engine/            scene, caméra, meshGen (traits, ballons, tampons), curves, editMode,
+                      transformHandles, exporter (STL/OBJ, coupe à la table), csg + booleanPreview (trous)
+js/ui/                fenêtre enseignant, sons
+```

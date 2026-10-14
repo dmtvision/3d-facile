@@ -23,7 +23,8 @@ class TeacherController {
       soundEnabled: localStorage.getItem('kidi3d_sound') !== 'false',
       uiScale: localStorage.getItem('kidi3d_ui_scale') || 'auto',
       workScale: parseFloat(localStorage.getItem('kidi3d_work_scale') || '1') || 1,
-      truncateBed: localStorage.getItem('kidi3d_truncate_bed') !== 'false' // activé par défaut
+      truncateBed: localStorage.getItem('kidi3d_truncate_bed') !== 'false', // activé par défaut
+      booleanPreview: localStorage.getItem('kidi3d_bool_preview') !== 'false' // aperçu des trous en direct, activé par défaut
     };
 
     this.bindEvents();
@@ -122,6 +123,8 @@ class TeacherController {
     if (workSel) workSel.value = String(this.settings.workScale);
     const truncEl = document.getElementById('setting-truncate-bed');
     if (truncEl) truncEl.checked = this.settings.truncateBed;
+    const boolEl = document.getElementById('setting-boolean-preview');
+    if (boolEl) boolEl.checked = this.settings.booleanPreview;
   }
 
   saveSettings() {
@@ -144,6 +147,8 @@ class TeacherController {
     const workScale = workSel ? (parseFloat(workSel.value) || 1) : 1;
     const truncEl = document.getElementById('setting-truncate-bed');
     const truncateBed = truncEl ? truncEl.checked : true;
+    const boolEl = document.getElementById('setting-boolean-preview');
+    const booleanPreview = boolEl ? boolEl.checked : true;
 
     const newPin = document.getElementById('setting-new-pin').value.trim();
     if (newPin.length >= 4) {
@@ -171,7 +176,8 @@ class TeacherController {
       soundEnabled,
       uiScale,
       workScale,
-      truncateBed
+      truncateBed,
+      booleanPreview
     };
 
     localStorage.setItem('kidi3d_bed_size', bedSize);
@@ -187,6 +193,7 @@ class TeacherController {
     localStorage.setItem('kidi3d_ui_scale', uiScale);
     localStorage.setItem('kidi3d_work_scale', workScale);
     localStorage.setItem('kidi3d_truncate_bed', truncateBed);
+    localStorage.setItem('kidi3d_bool_preview', booleanPreview);
 
     this.applySettingsToApp();
     document.getElementById('modal-teacher').classList.add('hidden');
@@ -195,6 +202,7 @@ class TeacherController {
   }
 
   applySettingsToApp() {
+    if (this.app.booleanPreview) this.app.booleanPreview.setEnabled(this.settings.booleanPreview);
     if (this.app.sceneManager) {
       const ws = this.settings.workScale || 1;
       this.app.sceneManager.updatePrintBed(this.settings.bedSize * ws, this.settings.showGrid, 10 * ws);

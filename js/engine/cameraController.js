@@ -25,6 +25,7 @@ class KidCameraController {
 
     this.isOrbiting = false;
     this.isPanning = false;
+    this.isZooming = false;
     this.lastMouseX = 0;
     this.lastMouseY = 0;
 
@@ -66,14 +67,21 @@ class KidCameraController {
   }
 
   // Clic droit : pivoter autour de la scène. Clic milieu : déplacer la vue.
-  onPointerDown(e) {
+  // Raccourcis : Alt + glisser = déplacer la vue ; Maj + glisser = zoomer (si opts.shiftZoom : pas au-dessus d'une forme à éditer)
+  onPointerDown(e, opts = {}) {
+    if (e.button === 0 && e.shiftKey && !e.altKey && opts.shiftZoom) {
+      this.isZooming = true;
+      this.lastMouseX = e.clientX;
+      this.lastMouseY = e.clientY;
+      return true;
+    }
     if (e.button === 2) {
       this.isOrbiting = true;
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
       return true;
     }
-    if (e.button === 1) {
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
       this.isPanning = true;
       this.lastMouseX = e.clientX;
       this.lastMouseY = e.clientY;
@@ -83,6 +91,15 @@ class KidCameraController {
   }
 
   onPointerMove(e) {
+    if (this.isZooming) {
+      const dy = e.clientY - this.lastMouseY;
+      this.lastMouseX = e.clientX;
+      this.lastMouseY = e.clientY;
+      // Glisser vers le haut : on s'approche ; vers le bas : on s'éloigne
+      this.targetDistance = Math.max(this.minDistance, Math.min(this.maxDistance, this.targetDistance + dy * 1.1 * this.zoomStep));
+      return true;
+    }
+
     if (this.isOrbiting) {
       const dx = e.clientX - this.lastMouseX;
       const dy = e.clientY - this.lastMouseY;
@@ -120,6 +137,7 @@ class KidCameraController {
   onPointerUp() {
     this.isOrbiting = false;
     this.isPanning = false;
+    this.isZooming = false;
   }
 
   setTurntableAngle(degrees) {
