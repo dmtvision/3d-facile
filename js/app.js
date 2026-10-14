@@ -59,6 +59,11 @@ class Kidi3DApp {
     this.mirrorGuide = null;
     this.hoverEraseMesh = null;
 
+    // Gestes tactiles à deux doigts
+    this.touchPts = new Map();
+    this.touchGesture = null;
+    this.touchSuppressed = false;
+
     this.init();
   }
 
@@ -75,6 +80,7 @@ class Kidi3DApp {
     this.bindUI();
     this.loadAutoSave();
     this.applyUIScale();
+    this.watchLayoutChanges();
     this.updateHistoryButtons();
     this.overlayCanvas.className = 'tool-tube';
     this.updateHintText();
@@ -110,10 +116,50 @@ class Kidi3DApp {
     this.overlayCanvas.addEventListener('mousedown', (e) => { if (e.button === 1) e.preventDefault(); }); // pas de défilement automatique au clic milieu
   }
 
+  // Tactile : deux doigts = pincer pour zoomer, glisser pour tourner la vue (un doigt reste pour dessiner)
+  touchPair() {
+    const pts = Array.from(this.touchPts.values());
+    if (pts.length < 2) return null;
+    return {
+      dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1,
+      mx: (pts[0].x + pts[1].x) / 2,
+      my: (pts[0].y + pts[1].y) / 2
+    };
+  }
+
+  beginTouchGesture() {
+    // Le premier doigt a peut-être déjà commencé un trait ou un déplacement : on l'abandonne
+    if (this.isDrawing) { this.isDrawing = false; this.rawPoints = []; this.clearOverlay(); }
+    if (this.isPlacingStamp) { this.isPlacingStamp = false; if (this.stampGhostMesh) this.stampGhostMesh.visible = false; }
+    if (this.currentTool === 'edit') this.editManager.handlePointerUp();
+    this.touchGesture = this.touchPair();
+    this.touchSuppressed = true;
+  }
+
+  handleTouchMove(e) {
+    if (!this.touchPts.has(e.pointerId)) return false;
+    this.touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!this.touchGesture) return this.touchSuppressed;
+    const now = this.touchPair();
+    if (!now) return true;
+    const cam = this.cameraController;
+    cam.targetDistance = Math.max(cam.minDistance, Math.min(cam.maxDistance, cam.targetDistance * (this.touchGesture.dist / now.dist)));
+    cam.targetTheta += (now.mx - this.touchGesture.mx) * 0.01;
+    cam.targetPhi = Math.max(0.1, Math.min(Math.PI / 2.02, cam.targetPhi - (now.my - this.touchGesture.my) * 0.01));
+    this.touchGesture = now;
+    return true;
+  }
+
   onPointerDown(e) {
     // Si on clique dans la barre d'édition ou un slider HTML, on ne fait RIEN dans la scène 3D
     if (e.target && e.target.closest('#edit-action-bar')) {
       return;
+    }
+
+    if (e.pointerType === 'touch') {
+      this.touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (this.touchPts.size === 2) { this.beginTouchGesture(); return; }
+      if (this.touchPts.size > 2 || this.touchSuppressed) return;
     }
 
     // Maj + glisser zoome, sauf en mode « Bouger » quand on vise une forme (Maj + clic = sélection multiple)
@@ -162,6 +208,7 @@ class Kidi3DApp {
   }
 
   onPointerMove(e) {
+    if (e.pointerType === 'touch' && this.handleTouchMove(e)) return;
     if (this.cameraController.onPointerMove(e)) {
       return;
     }
@@ -240,6 +287,14 @@ class Kidi3DApp {
   onPointerUp(e) {
     if (this.overlayCanvas.hasPointerCapture(e.pointerId)) {
       this.overlayCanvas.releasePointerCapture(e.pointerId);
+    }
+
+    if (e.pointerType === 'touch') {
+      const wasGesture = this.touchSuppressed;
+      this.touchPts.delete(e.pointerId);
+      if (this.touchPts.size < 2) this.touchGesture = null;
+      if (this.touchPts.size === 0) this.touchSuppressed = false;
+      if (wasGesture) return; // le doigt restant ne dessine pas après un geste à deux doigts
     }
 
     this.cameraController.onPointerUp();
@@ -328,6 +383,105 @@ class Kidi3DApp {
       this.setCutterLook(copy, true);
     }
     return copy;
+  }
+
+  // --- Peinture : la palette colorie directement les formes sélectionnées ---
+  colorHexes(mesh) {
+    const list = [];
+    mesh.traverse(c => { if (c.isMesh && c.material && c.material.color) list.push(c.material.color.getHex()); });
+    return list.join(',');
+  }
+
+  // Colorie une forme ; renvoie { mesh, changed } (un tampon est reconstruit : seules ses parties « colorables » changent)
+  recolorMesh(mesh, hex) {
+    const ud = mesh.userData;
+    if (ud.type === 'stamp' && ud.isGroup) {
+      const before = this.colorHexes(mesh);
+      const fresh = MeshGenerator.createStampMesh(ud.stampType, new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), ud.size || 12, hex);
+      fresh.position.copy(mesh.position);
+      fresh.quaternion.copy(mesh.quaternion);
+      fresh.scale.copy(mesh.scale);
+      if (ud.locked) fresh.userData.locked = true;
+      if (this.colorHexes(fresh) !== before) {
+        this.removeMeshFromScene(mesh);
+        this.addMeshToScene(fresh);
+        return { mesh: fresh, changed: true };
+      }
+      // Ce tampon ignore la couleur choisie : on colorie sa partie principale (le reste garde ses couleurs)
+      return { mesh, changed: this.tintStamp(mesh, hex) };
+    }
+    let changed = false;
+    mesh.traverse(c => {
+      if (!c.isMesh || !c.material || !c.material.color) return;
+      if (c.material.color.getHex() !== hex) changed = true;
+      c.material = c.material.clone(); // le matériau peut être partagé avec d'autres formes
+      c.material.color.setHex(hex);
+    });
+    ud.color = hex;
+    return { mesh, changed };
+  }
+
+  // Colorie la plus grosse pièce d'un tampon (et celles de même couleur) ; mémorisé dans userData.tint
+  tintStamp(mesh, hex) {
+    let main = null, best = -1;
+    const size = new THREE.Vector3();
+    mesh.traverse(c => {
+      if (!c.isMesh || !c.geometry || !c.material || !c.material.color) return;
+      if (!c.geometry.boundingBox) c.geometry.computeBoundingBox();
+      c.geometry.boundingBox.getSize(size);
+      const vol = size.x * size.y * size.z * Math.abs(c.scale.x * c.scale.y * c.scale.z);
+      if (vol > best) { best = vol; main = c; }
+    });
+    if (!main) return false;
+    const base = main.material.color.getHex();
+    let changed = false;
+    mesh.traverse(c => {
+      if (!c.isMesh || !c.material || !c.material.color || c.material.color.getHex() !== base) return;
+      if (base !== hex) changed = true;
+      c.material = c.material.clone();
+      c.material.color.setHex(hex);
+    });
+    mesh.userData.tint = hex;
+    return changed;
+  }
+
+  applyColorToSelection(hex) {
+    const em = this.editManager;
+    if (!em.selection.length) return false;
+    const targets = em.getTargets();
+    const paintable = targets.filter(m => !m.userData.cutter);
+    if (!paintable.length) {
+      this.showToast(em.selection.every(m => m.userData.cutter)
+        ? "🕳️ Un trou n'a pas de couleur : il est rouge pour le repérer."
+        : '🔒 Forme verrouillée : déverrouille-la pour la colorier.');
+      return false;
+    }
+    const results = paintable.map(m => this.recolorMesh(m, hex));
+    const kept = em.selection.filter(m => !paintable.includes(m));
+    em.setSelection(kept.concat(results.map(r => r.mesh)));
+    if (results.some(r => r.changed)) {
+      this.saveStateForUndo();
+      this.autoSave();
+      if (window.soundFx) window.soundFx.playPop();
+      this.showToast(paintable.length > 1 ? '🎨 Formes coloriées !' : '🎨 Coloriée !');
+    } else {
+      this.showToast('🎨 Déjà de cette couleur !');
+    }
+    return true;
+  }
+
+  // Quand on sélectionne une forme, la palette montre sa couleur (si c'est une couleur de la palette)
+  syncPaletteToSelection() {
+    const em = this.editManager;
+    if (em.selection.length !== 1) return;
+    const color = em.selectedMesh && em.selectedMesh.userData.color;
+    if (typeof color !== 'number') return;
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    const swatch = document.querySelector(`.color-swatch[data-color="${hex}"]`);
+    if (!swatch) return;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    this.currentColor = color;
   }
 
   // --- Formes « trou » : elles ne s'impriment pas, elles creusent les autres formes à l'export ---
@@ -750,24 +904,46 @@ class Kidi3DApp {
   }
 
   // --- Taille de l'interface (réglage enseignant) et ajustement des popups à l'écran ---
+  static get PANEL_IDS() { return ['stamps-drawer', 'geo-shapes-dock', 'pillar-profiles-dock', 'balloon-options-dock', 'edit-action-bar']; }
+
+  // Mode « petit écran » (smartphone, petite fenêtre) : posé en classes sur <html>, le CSS fait le reste
+  updateLayoutMode() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const compact = w <= 820 || h <= 560;
+    const landscape = compact && w > h && h <= 560;
+    const root = document.documentElement;
+    root.classList.toggle('compact', compact);
+    root.classList.toggle('compact-landscape', landscape);
+    return { compact, landscape };
+  }
+
   getUIScale() {
     const setting = this.teacherController ? this.teacherController.settings.uiScale : 'auto';
     if (setting && setting !== 'auto') return parseFloat(setting) || 1;
+    const w = window.innerWidth, h = window.innerHeight;
+    const root = document.documentElement;
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    if (root.classList.contains('compact-landscape')) return clamp(Math.min(w / 760, h / 420), 0.8, 1.2);
+    if (root.classList.contains('compact')) return clamp(w / 390, 0.85, 1.25);
     // Automatique : suit la taille de la fenêtre (référence 1200 × 760)
-    return Math.min(1.25, Math.max(0.6, Math.min(window.innerWidth / 1200, window.innerHeight / 760)));
+    return clamp(Math.min(w / 1200, h / 760), 0.6, 1.25);
   }
 
   applyUIScale() {
+    this.updateLayoutMode();
     document.documentElement.style.setProperty('--ui-scale', this.getUIScale().toFixed(3));
-    ['stamps-drawer', 'geo-shapes-dock', 'pillar-profiles-dock', 'balloon-options-dock', 'edit-action-bar'].forEach(id => {
-      this.fitPanelToScreen(document.getElementById(id));
-    });
+    Kidi3DApp.PANEL_IDS.forEach(id => this.fitPanelToScreen(document.getElementById(id)));
+    this.updatePanelOpenState();
+    this.updateViewOffset();
+    this.fitModals();
   }
 
   // Un popup n'est jamais coupé ni défilant : s'il est trop haut pour l'espace libre
   // (entre la barre du haut et le dock d'outils), il est réduit proportionnellement.
   fitPanelToScreen(el) {
     if (!el || el.classList.contains('hidden')) return;
+    if (document.documentElement.classList.contains('compact')) { this.fitPanelCompact(el); return; }
+    el.style.removeProperty('--pz');
     const MIN_ZOOM = 0.5;
     const dock = document.getElementById('tools-dock');
     let zoom = this.getUIScale();
@@ -792,6 +968,117 @@ class Kidi3DApp {
     if (rect.height > bottomLimit - rect.top + 0.5) {
       el.style.maxHeight = `${Math.max(120, (bottomLimit - rect.top) / zoom)}px`;
       el.style.overflowY = 'auto';
+    }
+  }
+
+  // Petit écran : portrait = volet pleine largeur posé au-dessus du dock ; paysage = volet à droite.
+  // Le CSS lit --pz (zoom du volet) et --sb (distance au bas) ; ici on réduit le volet pour qu'il tienne entièrement.
+  fitPanelCompact(el) {
+    const landscape = document.documentElement.classList.contains('compact-landscape');
+    const dock = document.getElementById('tools-dock');
+    const dockTop = dock ? dock.getBoundingClientRect().top : window.innerHeight;
+    const topLimit = landscape ? 54 : 58;
+    const bottomEdge = landscape ? window.innerHeight - 6 : dockTop - 6;
+    const available = bottomEdge - topLimit;
+    const MIN_ZOOM = 0.55;
+    let zoom = this.getUIScale();
+    const apply = (z) => { el.style.zoom = z; el.style.setProperty('--pz', z); };
+
+    el.style.setProperty('--sb', `${Math.max(0, window.innerHeight - bottomEdge)}px`);
+    el.style.maxHeight = 'none';
+    el.style.overflowY = 'visible';
+    apply(zoom);
+
+    for (let i = 0; i < 4; i++) {
+      const rect = el.getBoundingClientRect();
+      if (rect.height <= available + 0.5 || zoom <= MIN_ZOOM) break;
+      zoom = Math.max(MIN_ZOOM, zoom * (available / rect.height));
+      apply(zoom);
+    }
+    if (el.getBoundingClientRect().height > available + 0.5) {
+      el.style.maxHeight = `${Math.max(120, available / zoom)}px`;
+      el.style.overflowY = 'auto';
+    }
+  }
+
+  // Quand un volet est ouvert en paysage, le dock du bas lui laisse la place (variable --panel-w)
+  updatePanelOpenState() {
+    const root = document.documentElement;
+    let width = 0;
+    let open = false;
+    Kidi3DApp.PANEL_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.classList.contains('hidden')) return;
+      open = true;
+      width = Math.max(width, el.getBoundingClientRect().width);
+    });
+    root.classList.toggle('panel-open', open);
+    root.style.setProperty('--panel-w', `${Math.round(width)}px`);
+  }
+
+  // Petit écran : la scène est centrée dans la zone libre (entre la barre du haut, le dock et le volet ouvert),
+  // pour que la forme ne passe jamais derrière un panneau.
+  updateViewOffset() {
+    const cam = this.sceneManager && this.sceneManager.camera;
+    if (!cam) return;
+    const w = window.innerWidth, h = window.innerHeight;
+    const root = document.documentElement;
+    if (!root.classList.contains('compact')) {
+      if (cam.view && cam.view.enabled) { cam.clearViewOffset(); }
+      return;
+    }
+    let left = 0, right = w, top = 52, bottom = h;
+    const dock = document.getElementById('tools-dock');
+    if (dock) bottom = Math.min(bottom, dock.getBoundingClientRect().top - 4);
+    Kidi3DApp.PANEL_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.classList.contains('hidden')) return;
+      const r = el.getBoundingClientRect();
+      if (root.classList.contains('compact-landscape')) right = Math.min(right, r.left - 4);
+      else bottom = Math.min(bottom, r.top - 4);
+    });
+    const dx = w / 2 - (left + right) / 2;
+    const dy = h / 2 - (top + bottom) / 2;
+    cam.setViewOffset(w, h, Math.round(dx), Math.round(dy), w, h);
+  }
+
+  // Les fenêtres (export, réglages) se réduisent pour tenir dans l'écran ; défilement seulement en dernier recours
+  fitModals() {
+    document.querySelectorAll('.modal-overlay:not(.hidden) .modal-card').forEach(card => {
+      const maxH = window.innerHeight * 0.94 - 16;
+      card.style.zoom = 1;
+      card.style.maxHeight = 'none';
+      const natural = card.getBoundingClientRect().height;
+      let z = 1;
+      if (natural > maxH) z = Math.max(0.6, maxH / natural);
+      card.style.zoom = z;
+      card.style.maxHeight = `${maxH / z}px`;
+    });
+  }
+
+  // Surveille l'ouverture / fermeture des volets et des fenêtres pour les ajuster tout de suite
+  watchLayoutChanges() {
+    let pending = false;
+    const schedule = () => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => { pending = false; this.applyUIScale(); });
+    };
+    const obs = new MutationObserver(schedule);
+    const watch = (el) => { if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] }); };
+    Kidi3DApp.PANEL_IDS.forEach(id => watch(document.getElementById(id)));
+    document.querySelectorAll('.modal-overlay').forEach(watch);
+    window.addEventListener('orientationchange', () => setTimeout(schedule, 200));
+
+    // Bouton rond qui ouvre / ferme le panneau de caméra (petits écrans)
+    const camBtn = document.getElementById('btn-cam-toggle');
+    const camDock = document.getElementById('camera-dock');
+    if (camBtn && camDock) {
+      camBtn.addEventListener('click', () => {
+        const open = camDock.classList.toggle('open');
+        camBtn.classList.toggle('on', open);
+        camBtn.setAttribute('aria-pressed', String(open));
+      });
     }
   }
 
@@ -990,6 +1277,7 @@ class Kidi3DApp {
         if (el.scale) mesh.scale.set(el.scale.x, el.scale.y, el.scale.z);
         if (el.locked) mesh.userData.locked = true;
         if (el.cutter) mesh.userData.cutter = true;
+        if (el.tint != null && mesh.userData.isGroup) this.tintStamp(mesh, el.tint);
         this.addMeshToScene(mesh);
       }
     });
@@ -1202,7 +1490,15 @@ class Kidi3DApp {
         this.activeStamp = e.currentTarget.getAttribute('data-stamp');
         this.createStampGhost();
         const stampName = e.currentTarget.querySelector('.item-name')?.innerText || this.activeStamp;
-        this.showToast(`Tampon : ${stampName}`);
+        // Petit écran : le tiroir se referme pour laisser voir le dessin (on le rouvre en touchant « Tampon »)
+        const inDrawer = e.currentTarget.closest('#stamps-drawer');
+        const compact = document.documentElement.classList.contains('compact');
+        if (inDrawer && compact) {
+          inDrawer.classList.add('hidden');
+          this.showToast(`Tampon : ${stampName} — touche ton dessin pour le poser`);
+        } else {
+          this.showToast(`Tampon : ${stampName}`);
+        }
         if (window.soundFx) window.soundFx.playPop();
       });
     });
@@ -1316,16 +1612,9 @@ class Kidi3DApp {
         // Actualiser la couleur de l'aperçu pour formes et tampons
         this.refreshStampGhost();
 
-        if (this.currentTool === 'edit' && this.editManager.selectedMesh) {
-          const sel = this.editManager.selectedMesh;
-          if (sel.userData.cutter) {
-            this.showToast("🕳️ Un trou n'a pas de couleur : il est rouge pour le repérer.");
-          } else if (sel.material) {
-            sel.material.color.setHex(this.currentColor);
-            sel.userData.color = this.currentColor;
-            this.saveStateForUndo();
-            this.autoSave();
-          }
+        // En mode « Bouger », la couleur choisie peint toute la sélection
+        if (this.currentTool === 'edit' && this.editManager.selection.length) {
+          this.applyColorToSelection(this.currentColor);
         }
       });
     });
@@ -1493,7 +1782,7 @@ class Kidi3DApp {
       pillar: '🏛️ Trace un trait de bas en haut : ça fait un pilier bien droit.',
       stamp: "⭐ Choisis un tampon, puis clique sur ton dessin. Reste appuyé et glisse pour l'orienter !",
       shape3d: '🔷 Choisis une forme, règle ses proportions, puis clique pour la poser.',
-      edit: "✋ Touche une forme : des boutons apparaissent pour la bouger, l'agrandir ou la tourner.",
+      edit: "✋ Touche une forme : bouge-la, agrandis-la, tourne-la, ou choisis une couleur pour la peindre !",
       eraser: '🧽 Touche une forme pour la faire disparaître (elle devient rouge avant).'
     };
     hint.innerText = texts[this.currentTool] || '';

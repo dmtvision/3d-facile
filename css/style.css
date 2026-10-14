@@ -2361,3 +2361,182 @@ button:active:not(:disabled), summary:active { scale: 0.94; }
 .edit-cutter-btn:hover { background: #fecaca; }
 .edit-cutter-btn.is-on { background: #ef4444; border-color: #b91c1c; color: #fff; }
 .edit-cutter-hint { display: none; margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: #fef2f2; color: #991b1b; font-size: 12px; font-weight: 700; line-height: 1.3; }
+
+/* ==========================================================================
+   V14 - Petits écrans et smartphones (classe html.compact posée par le JS :
+   largeur <= 820 px ou hauteur <= 560 px). Tout tient à l'écran, rien à faire défiler.
+   ========================================================================== */
+#app-viewport { height: 100vh; height: 100dvh; }
+.cam-toggle { display: none; }
+
+/* ---- Barre du haut : icônes seules ---- */
+html.compact #top-bar { height: 52px; padding: 0 6px; }
+html.compact .logo-area { padding: 4px 8px; }
+html.compact .logo-icon { font-size: 22px; }
+html.compact .logo-title { display: none; }
+html.compact .top-actions, html.compact .top-right { gap: 4px; }
+html.compact .pill-btn { min-height: 40px; padding: 6px 10px; }
+html.compact .pill-btn .btn-label { display: none; }
+html.compact .pill-btn .btn-icon, html.compact .pill-btn.icon-only .btn-icon { font-size: 20px; }
+html.compact .pill-btn.icon-only { min-width: 40px; padding: 6px 8px; }
+html.compact .mini-icon-btn { width: 38px; height: 38px; font-size: 18px; }
+@media (min-width: 600px) {
+  html.compact .logo-title { display: block; font-size: 20px; }
+  html.compact .pill-btn.primary-btn .btn-label { display: inline; font-size: 15px; }
+}
+
+/* ---- Bulle d'aide ---- */
+html.compact #kid-hint { top: 58px; padding: 6px 12px; font-size: 13px; border-width: 2px; max-width: calc(94vw / var(--ui-scale)); }
+html.compact .hint-avatar { font-size: 18px; }
+
+/* ---- Navigation : bouton rond qui ouvre le panneau de caméra ---- */
+html.compact .cam-toggle {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 104px; left: 8px; z-index: 26;
+  width: 44px; height: 44px; border-radius: 50%; font-size: 22px;
+  background: var(--panel-bg); border: 3px solid var(--panel-border); box-shadow: var(--panel-shadow);
+  cursor: pointer; zoom: var(--ui-scale);
+}
+html.compact .cam-toggle.on { background: #e0f2fe; border-color: #38bdf8; }
+html.compact #camera-dock { display: none; top: 104px; left: 60px; width: 150px; padding: 8px; gap: 6px; z-index: 30; }
+html.compact #camera-dock.open { display: flex; }
+html.compact .gizmo-wrapper { width: 96px; height: 96px; }
+html.compact .dock-title, html.compact .gizmo-caption, html.compact .mouse-hints { display: none; }
+html.compact .dpad-controller { grid-template-columns: 40px 44px 40px; grid-template-rows: 36px 44px 36px; }
+html.compact .cam-pill { font-size: 11px; padding: 4px 2px; }
+
+/* ---- Dock d'outils : grille compacte ---- */
+html.compact .dock-bottom {
+  left: 6px; right: 6px; bottom: 6px; transform: none; width: auto; max-width: none;
+  padding: 6px 8px; border-radius: 22px; border-width: 2px; gap: 6px;
+}
+html.compact .dock-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; align-items: stretch; }
+html.compact .tool-group, html.compact .tool-selector-group, html.compact .util-tools-group { display: contents; }
+html.compact .tool-group-label, html.compact .tool-divider { display: none; }
+html.compact .magic-tool-btn, html.compact .magic-tool-btn.compact-tool, html.compact .toggle-tool {
+  min-width: 0; width: 100%; height: 54px; padding: 3px 2px; border-radius: 12px; border-width: 2px; gap: 0;
+}
+html.compact .tool-svg, html.compact .magic-tool-btn.compact-tool .tool-svg { width: 26px; height: 26px; }
+html.compact .tool-name, html.compact .magic-tool-btn.compact-tool .tool-name { font-size: 11px; }
+html.compact .toggle-tool .tool-name { font-size: 10px; text-align: center; }
+html.compact .magic-tool-btn.active { transform: none; box-shadow: 0 0 0 3px #38bdf8; }
+
+html.compact .dock-row-options { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding-top: 6px; width: 100%; }
+html.compact .thickness-group { flex-direction: row; align-items: center; width: 100%; gap: 8px; }
+html.compact .thickness-head { flex: none; display: flex; align-items: center; gap: 6px; }
+html.compact .size-slider { flex: 1; min-width: 0; }
+html.compact .color-palette-group .thickness-title { display: none; }
+html.compact .color-palette-group { width: 100%; }
+html.compact .palette-colors { grid-template-columns: repeat(11, 1fr); gap: 3px; width: 100%; }
+html.compact .color-swatch { width: 100%; max-width: 30px; height: auto; aspect-ratio: 1; justify-self: center; border-width: 2px; }
+html.compact .color-swatch.active { transform: scale(1.12); }
+
+/* ---- Téléphone en paysage / écran très bas : tout sur une seule rangée ---- */
+@media (orientation: landscape) and (max-height: 560px) {
+  html.compact .dock-row { grid-template-columns: repeat(8, 1fr); }
+  html.compact .magic-tool-btn, html.compact .magic-tool-btn.compact-tool, html.compact .toggle-tool { height: 46px; }
+  html.compact .tool-svg, html.compact .magic-tool-btn.compact-tool .tool-svg { width: 22px; height: 22px; }
+  html.compact .tool-name, html.compact .magic-tool-btn.compact-tool .tool-name { font-size: 10px; }
+  html.compact .dock-row-options { flex-direction: row; align-items: center; gap: 10px; }
+  html.compact .thickness-group { width: 40%; flex: none; }
+  html.compact .color-palette-group { flex: 1; }
+  html.compact .gizmo-wrapper, html.compact #camera-dock .gizmo-caption { display: none; }
+  html.compact #kid-hint { top: 56px; }
+  html.compact .cam-toggle, html.compact #camera-dock { top: 56px; }
+  html.compact.panel-open .dock-bottom { right: calc((var(--panel-w, 0px) + 12px) / var(--ui-scale)); }
+}
+
+/* ---- Panneaux (options d'outils, popup d'édition) ---- */
+/* Portrait : volet pleine largeur posé juste au-dessus du dock (--sb et --pz sont posés par le JS) */
+html.compact .side-panel-right,
+html.compact .stamps-drawer,
+html.compact .pillar-profiles-dock,
+html.compact .geo-shapes-dock,
+html.compact .balloon-options-dock,
+html.compact .edit-floating-bar {
+  position: absolute !important;
+  left: calc(6px / var(--pz, 1)) !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: calc(var(--sb, 150px) / var(--pz, 1)) !important;
+  width: calc((100vw - 12px) / var(--pz, 1)) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  padding: 8px !important;
+  transform: none !important;
+}
+html.compact .edit-body { grid-template-columns: 1fr 1fr !important; gap: 8px; }
+html.compact .edit-dpad-section { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); gap: 4px; }
+html.compact .edit-cross-btn { font-size: 18px; }
+html.compact .tilt-ico { font-size: 22px; }
+html.compact .tilt-txt { font-size: 9px; }
+html.compact .edit-axis-legend { font-size: 10px; }
+html.compact .stamps-drawer #stamp-grid.stamp-group-pane.active { grid-template-columns: repeat(4, 1fr) !important; }
+html.compact .stamps-drawer .stamp-item { min-height: 56px !important; padding: 4px 2px; font-size: 11px; }
+html.compact .stamps-drawer .item-icon { font-size: 26px !important; }
+
+/* Paysage : volet à droite, sur toute la hauteur libre */
+@media (orientation: landscape) and (max-height: 560px) {
+  html.compact .side-panel-right,
+  html.compact .stamps-drawer,
+  html.compact .pillar-profiles-dock,
+  html.compact .geo-shapes-dock,
+  html.compact .balloon-options-dock,
+  html.compact .edit-floating-bar {
+    left: auto !important;
+    right: calc(6px / var(--pz, 1)) !important;
+    top: calc(54px / var(--pz, 1)) !important;
+    bottom: auto !important;
+    width: calc(300px / var(--pz, 1)) !important;
+  }
+  html.compact .edit-floating-bar { width: calc(420px / var(--pz, 1)) !important; }
+}
+
+/* ---- Messages ---- */
+html.compact .toast-container { top: 100px !important; bottom: auto !important; left: 8px; right: 8px; align-items: center; }
+html.compact .toast { font-size: 14px; padding: 8px 14px; }
+
+/* ---- Fenêtres (export, enseignant) ---- */
+html.compact .modal-overlay { padding: 8px; }
+html.compact .modal-header { padding: 10px 14px; }
+
+/* V14b - ajustements petits écrans */
+html.compact #top-bar { padding: 0 4px; }
+html.compact .logo-area { padding: 3px 6px; }
+html.compact .top-actions, html.compact .top-right { gap: 3px; }
+html.compact .pill-btn { min-height: 36px; padding: 4px 8px; }
+html.compact .pill-btn.icon-only { min-width: 36px; padding: 4px 6px; }
+html.compact .mini-icon-btn { width: 34px; height: 34px; font-size: 16px; }
+html.compact #kid-hint { width: max-content; }
+html.compact .magic-tool-btn, html.compact .magic-tool-btn.compact-tool, html.compact .toggle-tool { height: 50px; }
+
+/* V14c - popup d'édition compact sur téléphone */
+html.compact .edit-shift-tip, html.compact .edit-axis-legend { display: none; }
+html.compact .edit-col { min-width: 0; }
+html.compact .edit-head { gap: 0; }
+html.compact .edit-row-actions { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+html.compact .edit-sub-btn { min-height: 40px; font-size: 10px; padding: 2px; }
+html.compact .edit-sub-btn .e-ico { font-size: 16px; }
+html.compact .edit-action-pill { min-height: 36px; font-size: 14px; padding: 4px 8px; }
+html.compact .edit-lock-btn { min-height: 38px !important; font-size: 13px !important; padding: 4px 8px; }
+html.compact .edit-lock-btn .lock-ico { font-size: 18px !important; }
+html.compact .edit-caption { font-size: 12px; }
+html.compact .edit-locked-banner { font-size: 12px; padding: 4px 6px; }
+html.compact .edit-cutter-hint { font-size: 11px; padding: 4px 6px; }
+
+/* V14d - paysage avec un volet ouvert : dock resserré (icônes seules) */
+@media (orientation: landscape) and (max-height: 560px) {
+  html.compact.panel-open .tool-name { display: none; }
+  html.compact.panel-open .thickness-title,
+  html.compact.panel-open .thickness-preview { display: none; }
+  html.compact.panel-open .dock-row-options { gap: 6px; }
+  html.compact.panel-open .thickness-group { width: 34%; }
+  html.compact.panel-open .color-swatch { max-width: 22px; }
+  html.compact .dock-bottom { overflow: hidden; }
+}
+
+/* V14e - paysage + volet : couleurs sur deux rangées (pastilles plus grosses) */
+@media (orientation: landscape) and (max-height: 560px) {
+  html.compact.panel-open .palette-colors { grid-template-columns: repeat(6, 1fr); gap: 3px; }
+  html.compact.panel-open .color-swatch { max-width: 26px; }
+}

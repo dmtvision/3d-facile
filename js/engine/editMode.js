@@ -606,7 +606,8 @@ class EditModeManager {
 
     // Objet non courbe : le panneau « Proportions » est affiché d'emblée
     const box = document.getElementById('edit-scale-box');
-    if (box) box.open = !this.isMulti() && !this.isCurve(this.selectedMesh);
+    // Petit écran : proportions repliées (le volet doit rester petit pour ne pas cacher la forme)
+    if (box) box.open = !this.isMulti() && !this.isCurve(this.selectedMesh) && !document.documentElement.classList.contains('compact');
 
     // Le curseur « Taille » du bas prend la valeur de la sélection
     this.app.beginSelectionThickness();
@@ -649,6 +650,7 @@ class EditModeManager {
         : (n > 1 ? 'Verrouiller les formes' : 'Verrouiller');
     }
 
+    if (this.app.syncPaletteToSelection) this.app.syncPaletteToSelection();
     const allCutter = this.selection.every(m => m.userData.cutter);
     const cutBtn = document.getElementById('btn-edit-cutter');
     if (cutBtn) {
