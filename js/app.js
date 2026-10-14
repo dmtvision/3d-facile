@@ -979,8 +979,9 @@ class Kidi3DApp {
     const dockTop = dock ? dock.getBoundingClientRect().top : window.innerHeight;
     const topLimit = landscape ? 54 : 58;
     const bottomEdge = landscape ? window.innerHeight - 6 : dockTop - 6;
-    const available = bottomEdge - topLimit;
-    const MIN_ZOOM = 0.55;
+    // Le volet ne prend jamais plus de la moitié de l'écran en portrait (sinon la forme disparaît)
+    const available = landscape ? bottomEdge - topLimit : Math.min(bottomEdge - topLimit, Math.round(window.innerHeight * 0.5));
+    const MIN_ZOOM = 0.5;
     let zoom = this.getUIScale();
     const apply = (z) => { el.style.zoom = z; el.style.setProperty('--pz', z); };
 

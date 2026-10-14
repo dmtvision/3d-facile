@@ -2540,3 +2540,10 @@ html.compact .edit-cutter-hint { font-size: 11px; padding: 4px 6px; }
   html.compact.panel-open .palette-colors { grid-template-columns: repeat(6, 1fr); gap: 3px; }
   html.compact.panel-open .color-swatch { max-width: 26px; }
 }
+
+/* V14f - popup d'édition repliable sur petit écran */
+.edit-min-btn { display: none; }
+html.compact .edit-min-btn { display: flex; flex: 0 0 auto; min-width: 44px; justify-content: center; align-items: center; background: #e0f2fe; border-color: #7dd3fc; color: #0369a1; }
+html.compact .edit-floating-bar.is-min .edit-body,
+html.compact .edit-floating-bar.is-min .edit-locked-banner,
+html.compact .edit-floating-bar.is-min .edit-shift-tip { display: none; }

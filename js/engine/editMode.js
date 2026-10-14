@@ -82,6 +82,7 @@ class EditModeManager {
           <div class="edit-row-options">
             <button id="btn-edit-delete" class="edit-action-pill danger" title="Jeter la forme">&#128465;&#65039; Jeter</button>
             <button id="btn-edit-deselect" class="edit-action-pill success" title="Terminé">&#10004;&#65039; Fini !</button>
+            <button id="btn-edit-min" class="edit-action-pill edit-min-btn" type="button" title="Réduire ou ouvrir les réglages" aria-expanded="true">&#9660;</button>
           </div>
 
           <div id="edit-locked-banner" class="edit-locked-banner">&#128274; Forme verrouillée : elle ne peut plus bouger.</div>
@@ -429,6 +430,13 @@ class EditModeManager {
     });
 
     document.getElementById('btn-edit-deselect').addEventListener('click', () => this.deselect());
+
+    // Petit écran : le popup peut se replier en une barre pour dégager la vue
+    document.getElementById('btn-edit-min').addEventListener('click', () => {
+      this.editMinimized = !this.editMinimized;
+      this.refreshSelectionUI();
+      if (this.app.applyUIScale) this.app.applyUIScale();
+    });
   }
 
   // ---------------------------------------------------------------- sélection multiple & verrouillage
@@ -628,6 +636,12 @@ class EditModeManager {
     const locked = this.selection.filter(m => this.isLocked(m)).length;
     const allLocked = locked === n;
 
+    bar.classList.toggle('is-min', !!this.editMinimized);
+    const minBtn = document.getElementById('btn-edit-min');
+    if (minBtn) {
+      minBtn.innerHTML = this.editMinimized ? '&#9650; Options' : '&#9660;';
+      minBtn.setAttribute('aria-expanded', String(!this.editMinimized));
+    }
     bar.classList.toggle('is-multi', n > 1);
     bar.classList.toggle('is-locked', allLocked);
     bar.classList.toggle('is-curve', n === 1 && this.isCurve(this.selectedMesh));
