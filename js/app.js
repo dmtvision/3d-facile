@@ -74,6 +74,7 @@ class Kidi3DApp {
     this.teacherController = new TeacherController(this);
     this.editManager = new EditModeManager(this);
     this.booleanPreview = new BooleanPreview(this);
+    this.keyTransform = new KeyTransform(this);
     this.booleanPreview.setEnabled(this.teacherController.settings.booleanPreview !== false);
 
     this.setupDrawingOverlay();
@@ -81,6 +82,7 @@ class Kidi3DApp {
     this.loadAutoSave();
     this.applyUIScale();
     this.watchLayoutChanges();
+    this.setupMoveAll();
     this.updateHistoryButtons();
     this.overlayCanvas.className = 'tool-tube';
     this.updateHintText();
@@ -1055,6 +1057,74 @@ class Kidi3DApp {
       card.style.zoom = z;
       card.style.maxHeight = `${maxH / z}px`;
     });
+  }
+
+  // --- Déplacer toute la sculpture sur le plateau (flèches, glisser, centrer) ---
+  setupMoveAll() {
+    const em = this.editManager;
+    const all = () => this.userMeshes.slice();
+    const refresh = () => { if (em.selection.length) em.syncTransformVisuals(false); };
+    const finish = () => {
+      this.updateBaseIfActive();
+      this.saveStateForUndo();
+      this.autoSave();
+      refresh();
+    };
+    const empty = () => {
+      if (this.userMeshes.length) return false;
+      this.showToast("🧱 Rien à déplacer pour l'instant");
+      return true;
+    };
+
+    // Flèches : un pas à chaque appui, répété si on garde le doigt / la souris appuyé
+    let timer = null, moved = false;
+    const stop = () => {
+      clearTimeout(timer); clearInterval(timer); timer = null;
+      if (moved) { moved = false; finish(); }
+    };
+    document.querySelectorAll('#move-all .ma-btn[data-r]').forEach(btn => {
+      const r = parseFloat(btn.dataset.r), b = parseFloat(btn.dataset.b);
+      const step = () => { em.viewMove(all(), r, 0, b, 8 * this.workScale); moved = true; refresh(); };
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (empty()) return;
+        step();
+        timer = setTimeout(() => { timer = setInterval(step, 90); }, 350);
+      });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, stop));
+    });
+
+    document.getElementById('btn-all-center').addEventListener('click', () => {
+      if (empty()) return;
+      const t = all();
+      const c = em.unionBox(t).getCenter(new THREE.Vector3());
+      em.moveSelection(t, -c.x, 0, -c.z);
+      finish();
+      this.showToast('◎ Sculpture centrée sur le plateau');
+    });
+
+    // Poignée ✥ : glisser pour déplacer toute la sculpture dans le plan du plateau
+    const drag = document.getElementById('btn-all-drag');
+    const ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    let last = null;
+    const hitAt = (e) => em.getRaycaster({ x: e.clientX, y: e.clientY }).ray.intersectPlane(ground, new THREE.Vector3());
+    drag.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (empty()) return;
+      try { drag.setPointerCapture(e.pointerId); } catch (err) { /* pas de capture possible : on continue */ }
+      last = hitAt(e);
+    });
+    drag.addEventListener('pointermove', (e) => {
+      if (!last) return;
+      const p = hitAt(e);
+      if (!p) return;
+      em.moveSelection(all(), p.x - last.x, 0, p.z - last.z);
+      last = p;
+      moved = true;
+      refresh();
+    });
+    const endDrag = () => { if (!last) return; last = null; if (moved) { moved = false; finish(); } };
+    ['pointerup', 'pointercancel'].forEach(ev => drag.addEventListener(ev, endDrag));
   }
 
   // Surveille l'ouverture / fermeture des volets et des fenêtres pour les ajuster tout de suite

@@ -454,7 +454,7 @@ class EditModeManager {
   }
 
   // Déplace d'un pas (8 mm) dans le repère de la vue : droite / haut / fond
-  viewMove(targets, right, up, back) {
+  viewMove(targets, right, up, back, step = 8) {
     const cam = this.app.sceneManager.camera;
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     fwd.y = 0;
@@ -465,7 +465,6 @@ class EditModeManager {
     }
     fwd.normalize();
     const rightDir = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
-    const step = 8;
     this.moveSelection(
       targets,
       (rightDir.x * right + fwd.x * back) * step,
