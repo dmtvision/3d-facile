@@ -20,7 +20,7 @@ class TeacherController {
       toolShapes: localStorage.getItem('kidi3d_tool_shapes') !== 'false',
       toolStamps: localStorage.getItem('kidi3d_tool_stamps') !== 'false',
       toolEdit: localStorage.getItem('kidi3d_tool_edit') !== 'false',
-      soundEnabled: localStorage.getItem('kidi3d_sound') !== 'false',
+      soundEnabled: localStorage.getItem('kidi3d_sound') === 'true', // son coupé par défaut
       uiScale: localStorage.getItem('kidi3d_ui_scale') || 'auto',
       workScale: parseFloat(localStorage.getItem('kidi3d_work_scale') || '1') || 1,
       truncateBed: localStorage.getItem('kidi3d_truncate_bed') !== 'false', // activé par défaut
@@ -227,6 +227,8 @@ class TeacherController {
     if (window.soundFx) {
       window.soundFx.enabled = this.settings.soundEnabled;
     }
+    const soundIcon = document.getElementById('sound-icon');
+    if (soundIcon) soundIcon.innerText = this.settings.soundEnabled ? '🔊' : '🔇';
 
     // Le minimum de sécurité change la plage utile du curseur « Taille »
     if (typeof this.app.syncThicknessUI === 'function') this.app.syncThicknessUI();

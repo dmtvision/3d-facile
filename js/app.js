@@ -75,6 +75,7 @@ class Kidi3DApp {
     this.editManager = new EditModeManager(this);
     this.booleanPreview = new BooleanPreview(this);
     this.keyTransform = new KeyTransform(this);
+    this.importer = new ModelImporter(this);
     this.booleanPreview.setEnabled(this.teacherController.settings.booleanPreview !== false);
 
     this.setupDrawingOverlay();
@@ -420,6 +421,7 @@ class Kidi3DApp {
       c.material.color.setHex(hex);
     });
     ud.color = hex;
+    if (ud.type === 'stamp') ud.tint = hex; // un tampon d'une seule pièce : la teinte suit le dernier choix
     return { mesh, changed };
   }
 
@@ -444,6 +446,7 @@ class Kidi3DApp {
       c.material.color.setHex(hex);
     });
     mesh.userData.tint = hex;
+    if (!mesh.userData.isGroup) mesh.userData.color = hex; // tampon d'une seule pièce : la couleur est recréée telle quelle à la restauration
     return changed;
   }
 
@@ -547,7 +550,7 @@ class Kidi3DApp {
       this.stampGhostMesh = null;
     }
 
-    const ghostColor = MeshGenerator.getDefaultColorForStamp(this.activeStamp, this.currentColor);
+    const ghostColor = this.getPlacementColor(this.activeStamp);
     const ghost = MeshGenerator.createStampMesh(
       this.activeStamp,
       new THREE.Vector3(0, 0, 0),
@@ -558,6 +561,7 @@ class Kidi3DApp {
 
     if (!ghost) return;
 
+    this.applyPlacementTint(ghost, this.activeStamp);
     this.applyPlacementScale(ghost);
     ghost.traverse(child => {
       if (child.isMesh && child.material) {
@@ -600,6 +604,21 @@ class Kidi3DApp {
     }
   }
 
+  // Couleur à la pose : les formes 3D prennent la couleur de la palette. Les tampons gardent leurs couleurs
+  // naturelles (cœur rouge, couronne dorée…) tant qu'on n'a pas choisi de couleur ; ensuite leur partie
+  // principale prend la couleur choisie (les yeux, eux, colorient toujours leur iris).
+  static get SHAPE_TYPES() { return ['cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid']; }
+
+  getPlacementColor(type) {
+    if (Kidi3DApp.SHAPE_TYPES.includes(type)) return this.currentColor;
+    return MeshGenerator.getDefaultColorForStamp(type, this.currentColor);
+  }
+
+  applyPlacementTint(mesh, type) {
+    if (!this.colorChosen || Kidi3DApp.SHAPE_TYPES.includes(type) || type === 'eye_single' || type === 'eyes_cartoon') return;
+    this.tintStamp(mesh, this.currentColor);
+  }
+
   startStampPlacement(pt) {
     const hit = this.raycastScene(pt);
     if (!hit) return;
@@ -633,12 +652,13 @@ class Kidi3DApp {
 
     if (!point || !normal) return;
 
-    const stampColor = MeshGenerator.getDefaultColorForStamp(this.activeStamp, this.currentColor);
+    const stampColor = this.getPlacementColor(this.activeStamp);
     const stampMesh = MeshGenerator.createStampMesh(
       this.activeStamp, point, normal, this.currentThickness * 0.8, stampColor, rotation, sink
     );
     if (!stampMesh) return;
 
+    this.applyPlacementTint(stampMesh, this.activeStamp);
     this.applyPlacementScale(stampMesh);
     this.addMeshToScene(stampMesh);
 
@@ -1210,6 +1230,7 @@ class Kidi3DApp {
     this.redoStack = [];
     this.updateHistoryButtons();
     localStorage.removeItem('kidi3d_autosave');
+    if (this.importer) this.importer.forget();
     this.showToast('Nouvelle feuille magique toute propre !');
     if (window.soundFx) window.soundFx.playPop();
   }
@@ -1332,6 +1353,8 @@ class Kidi3DApp {
           bevelRatio: el.bevelRatio,
           smoothIterations: el.smoothIterations
         });
+      } else if (el.type === 'imported') {
+        mesh = this.importer.createFromRecord(el);
       } else if (el.type === 'stamp') {
         const hitPos = el.position ? new THREE.Vector3(el.position.x, el.position.y, el.position.z) : new THREE.Vector3(0, 0, 0);
         mesh = MeshGenerator.createStampMesh(el.stampType, hitPos, new THREE.Vector3(0, 0, 1), el.size || 12, el.color || null);
@@ -1348,7 +1371,7 @@ class Kidi3DApp {
         if (el.scale) mesh.scale.set(el.scale.x, el.scale.y, el.scale.z);
         if (el.locked) mesh.userData.locked = true;
         if (el.cutter) mesh.userData.cutter = true;
-        if (el.tint != null && mesh.userData.isGroup) this.tintStamp(mesh, el.tint);
+        if (el.tint != null && mesh.userData.type === 'stamp') this.tintStamp(mesh, el.tint);
         this.addMeshToScene(mesh);
       }
     });
@@ -1679,6 +1702,7 @@ class Kidi3DApp {
         e.currentTarget.classList.add('active');
         const hex = e.currentTarget.getAttribute('data-color');
         this.currentColor = parseInt(hex.replace('#', '0x'), 16);
+        this.colorChosen = true; // un choix explicite : les prochains tampons prendront cette couleur
 
         // Actualiser la couleur de l'aperçu pour formes et tampons
         this.refreshStampGhost();

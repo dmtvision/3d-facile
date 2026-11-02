@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="css/style.css?v=62">
+  <link rel="stylesheet" href="css/style.css?v=69">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -36,8 +36,13 @@
         <span class="btn-icon">🗑️</span>
         <span class="btn-label">Tout effacer</span>
       </button>
+      <button id="btn-import-model" class="pill-btn" title="Importer un modèle 3D (.stl ou .obj) pour le modifier">
+        <span class="btn-icon">📥</span>
+        <span class="btn-label">Importer</span>
+      </button>
+      <input type="file" id="input-import-model" accept=".stl,.obj" class="hidden-input">
       <button id="btn-sound-toggle" class="pill-btn icon-only" title="Sons : on / off" aria-label="Sons">
-        <span class="btn-icon" id="sound-icon">🔊</span>
+        <span class="btn-icon" id="sound-icon">🔇</span>
       </button>
       <button id="btn-toggle-hint" class="pill-btn icon-only" title="Aide" aria-label="Aide">
         <span class="btn-icon">❓</span>
@@ -433,11 +438,11 @@
           </div>
 
           <div class="settings-row">
-            <label for="setting-min-thickness">Épaisseur minimale de sécurité pour l'enfant :</label>
+            <label for="setting-min-thickness">Rayon minimal des traits (un trait de rayon 5 mm fait 10 mm d'épaisseur) :</label>
             <select id="setting-min-thickness">
-              <option value="8">8 mm (Ultra robuste, idéal 6-7 ans)</option>
-              <option value="5" selected>5 mm (Recommandé, évite les casses au décollement)</option>
-              <option value="3">3 mm (Fin, pour enfants plus précis)</option>
+              <option value="8">Rayon 8 mm minimum (ultra robuste, idéal 6-7 ans)</option>
+              <option value="5" selected>Rayon 5 mm minimum (recommandé, évite les casses)</option>
+              <option value="3">Rayon 3 mm minimum (fin, pour enfants plus précis)</option>
             </select>
           </div>
 
@@ -500,7 +505,7 @@
               <span>Outil Modifier (Mode Édition)</span>
             </label>
             <label class="checkbox-label">
-              <input type="checkbox" id="toggle-sound-effects" checked>
+              <input type="checkbox" id="toggle-sound-effects">
               <span>Effets sonores</span>
             </label>
           </div>
@@ -607,8 +612,8 @@
           <div class="export-card">
             <div class="export-card-icon">🎨</div>
             <div class="export-card-content">
-              <h3>Fichier OBJ avec Couleurs</h3>
-              <p>Pour Paint 3D, Blender ou impression multicolore.</p>
+              <h3>Fichier OBJ (Blender et autres logiciels 3D)</h3>
+              <p>Maillage sans couleurs, pour Blender, Paint 3D ou d'autres logiciels de modélisation.</p>
             </div>
             <button id="btn-download-obj" class="pill-btn secondary-btn">Télécharger .OBJ</button>
           </div>
@@ -635,19 +640,20 @@
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/ui/sound.js?v=62"></script>
-  <script src="js/engine/curves.js?v=62"></script>
-  <script src="js/engine/meshGen.js?v=62"></script>
-  <script src="js/engine/scene.js?v=62"></script>
-  <script src="js/engine/cameraController.js?v=62"></script>
-  <script src="js/engine/gizmo.js?v=62"></script>
-  <script src="js/engine/transformHandles.js?v=62"></script>
-  <script src="js/engine/editMode.js?v=62"></script>
-  <script src="js/engine/csg.js?v=62"></script>
-  <script src="js/engine/exporter.js?v=62"></script>
-  <script src="js/engine/booleanPreview.js?v=62"></script>
-  <script src="js/engine/keyTransform.js?v=62"></script>
-  <script src="js/ui/teacherModal.js?v=62"></script>
-  <script src="js/app.js?v=62"></script>
+  <script src="js/ui/sound.js?v=69"></script>
+  <script src="js/engine/curves.js?v=69"></script>
+  <script src="js/engine/meshGen.js?v=69"></script>
+  <script src="js/engine/scene.js?v=69"></script>
+  <script src="js/engine/cameraController.js?v=69"></script>
+  <script src="js/engine/gizmo.js?v=69"></script>
+  <script src="js/engine/transformHandles.js?v=69"></script>
+  <script src="js/engine/editMode.js?v=69"></script>
+  <script src="js/engine/csg.js?v=69"></script>
+  <script src="js/engine/exporter.js?v=69"></script>
+  <script src="js/engine/booleanPreview.js?v=69"></script>
+  <script src="js/engine/keyTransform.js?v=69"></script>
+  <script src="js/engine/importer.js?v=69"></script>
+  <script src="js/ui/teacherModal.js?v=69"></script>
+  <script src="js/app.js?v=69"></script>
 </body>
 </html>

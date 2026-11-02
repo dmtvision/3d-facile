@@ -2582,3 +2582,9 @@ html.compact .move-all-title { font-size: 11px; }
 html.compact #camera-dock { gap: 4px; padding: 6px; }
 html.compact .move-all-pad { grid-template-rows: repeat(3, 30px); }
 html.compact .dpad-controller { grid-template-rows: 32px 40px 32px; }
+
+/* V16 - Import de modèles 3D */
+.edit-import-box { display: none; padding-top: 6px; border-top: 1px dashed #cbd5e1; margin-top: 6px; }
+.edit-import-box .edit-row-actions { grid-template-columns: repeat(3, 1fr); gap: 4px; }
+html.compact .edit-import-box .edit-sub-btn { min-height: 38px; }
+@media (max-width: 430px) { html.compact .logo-area { display: none; } }

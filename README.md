@@ -4,6 +4,8 @@ Application web sans installation (JavaScript + Three.js r128, aucun outil de bu
 exporte son modèle en **STL / OBJ** pour l'imprimer. Il suffit de déposer le dossier sur un serveur web
 (ou de lancer un petit serveur local) et d'ouvrir `index.html`.
 
+> 📖 **Guide d'utilisation complet** (libellés exacts, valeurs, étapes, recettes de tutoriels) : [docs/GUIDE_UTILISATION.md](docs/GUIDE_UTILISATION.md)
+
 ## Outils
 
 | Groupe | Outils |
@@ -23,6 +25,15 @@ exporte son modèle en **STL / OBJ** pour l'imprimer. Il suffit de déposer le d
 | Modifier une forme (quel que soit l'outil) | **Ctrl** + clic sur la forme |
 | Sélectionner plusieurs formes | **Maj** + clic (en mode Bouger) |
 | Annuler / Refaire | `Ctrl+Z` / `Ctrl+Y` |
+
+## Importer un modèle 3D
+
+Le bouton **📥 Importer** (ou un glisser-déposer sur la fenêtre) ouvre un fichier **.stl** (binaire ou texte) ou **.obj**.
+Le modèle est remis à l'endroit, centré, mis à une taille adaptée au plateau (~45 %) et posé sur la table dans un espace libre.
+Il devient une forme comme les autres (déplacer, tourner, agrandir, colorier, copier, verrouiller, trou…) avec en plus, dans le popup :
+**Basculer 90° / Pencher 90°**, **Poser**, **Taille auto**, **Taille réelle** (celle du fichier) et **Centrer**.
+Les STL sont lus avec Z vers le haut ; les OBJ avec Y vers le haut (sauf ceux exportés par l'appli). Limite : 400 000 triangles.
+Les modèles importés sont conservés dans la sauvegarde automatique (si assez légers) et dans les fichiers projet `.kid3d`.
 
 ## Formes « trou » (booléen)
 

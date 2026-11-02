@@ -164,6 +164,19 @@ class EditModeManager {
               <div class="scale-row"><span class="axis-tag axis-z">Profondeur</span><input type="range" id="edit-scale-z" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-z" class="scale-val">&times;1.0</span></div>
             </details>
 
+            <!-- Modèle importé (STL / OBJ) -->
+            <div id="edit-import-box" class="edit-import-box" style="display: none;">
+              <div class="edit-caption">&#128229; Modèle importé</div>
+              <div class="edit-row-actions">
+                <button id="btn-imp-tilt-x" class="edit-sub-btn" title="Basculer le modèle de 90° (vers l'avant)"><span class="e-ico">&#8635;</span>Basculer 90°</button>
+                <button id="btn-imp-tilt-z" class="edit-sub-btn" title="Pencher le modèle de 90° (sur le côté)"><span class="e-ico">&#8635;</span>Pencher 90°</button>
+                <button id="btn-imp-ground" class="edit-sub-btn" title="Poser le modèle sur la table"><span class="e-ico">&#11015;&#65039;</span>Poser</button>
+                <button id="btn-imp-fit" class="edit-sub-btn" title="Remettre la taille automatique (adaptée au plateau)"><span class="e-ico">&#128207;</span>Taille auto</button>
+                <button id="btn-imp-real" class="edit-sub-btn" title="Taille d'origine du fichier (celle qui sera imprimée)"><span class="e-ico">&#128270;</span>Taille réelle</button>
+                <button id="btn-imp-center" class="edit-sub-btn" title="Centrer sur le plateau"><span class="e-ico">&#127919;</span>Centrer</button>
+              </div>
+            </div>
+
             <div class="edit-caption">&#128260; Tourner, taille, copie</div>
             <div class="edit-row-actions">
               <button id="btn-edit-rot-left" class="edit-sub-btn" title="Tourner vers la gauche"><span class="e-ico">&#8634;</span>Tourner</button>
@@ -431,6 +444,44 @@ class EditModeManager {
 
     document.getElementById('btn-edit-deselect').addEventListener('click', () => this.deselect());
 
+    // Options simples d'un modèle importé
+    const imp = (id, fn) => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('click', () => {
+        const t = this.getTargets();
+        if (!t.length) return;
+        fn(t);
+        this.syncTransformVisuals();
+        this.commitChange();
+        this.app.updateBaseIfActive();
+      });
+    };
+    const ground = (t) => {
+      const dy = this.unionBox(t).min.y;
+      t.forEach(m => { m.position.y -= dy; });
+    };
+    imp('btn-imp-tilt-x', t => { this.tiltSelection(t, 'x', 1, Math.PI / 2); ground(t); });
+    imp('btn-imp-tilt-z', t => { this.tiltSelection(t, 'z', 1, Math.PI / 2); ground(t); });
+    imp('btn-imp-ground', ground);
+    imp('btn-imp-center', t => {
+      const c = this.unionBox(t).getCenter(new THREE.Vector3());
+      this.moveSelection(t, -c.x, 0, -c.z);
+    });
+    imp('btn-imp-fit', t => {
+      t.forEach(m => {
+        const fit = m.userData.fitScale || 1;
+        this.transformAboutPivot(mm => mm.scale.set(Math.sign(mm.scale.x) * fit, Math.sign(mm.scale.y) * fit, Math.sign(mm.scale.z) * fit), m);
+      });
+      ground(t);
+    });
+    imp('btn-imp-real', t => {
+      const real = this.app.workScale || 1; // la taille du fichier, convertie dans l'espace de travail
+      t.forEach(m => {
+        this.transformAboutPivot(mm => mm.scale.set(Math.sign(mm.scale.x) * real, Math.sign(mm.scale.y) * real, Math.sign(mm.scale.z) * real), m);
+      });
+      ground(t);
+    });
+
     // Petit écran : le popup peut se replier en une barre pour dégager la vue
     document.getElementById('btn-edit-min').addEventListener('click', () => {
       this.editMinimized = !this.editMinimized;
@@ -489,7 +540,7 @@ class EditModeManager {
 
   // Rotation de 22,5° autour d'un axe horizontal de la vue : 'x' = axe gauche-droite de l'écran (basculer),
   // 'z' = axe de profondeur (pencher). Une forme tourne autour de son centre, plusieurs autour de leur centre commun.
-  tiltSelection(targets, which, sign = 1) {
+  tiltSelection(targets, which, sign = 1, step = Math.PI / 8) {
     const cam = this.app.sceneManager.camera;
     const fwd = cam.getWorldDirection(new THREE.Vector3());
     fwd.y = 0;
@@ -500,7 +551,7 @@ class EditModeManager {
     fwd.normalize();
     const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
     const axis = which === 'x' ? right : fwd;
-    const angle = sign * Math.PI / 8;
+    const angle = sign * step;
     // Une forme posée sur la table y reste posée après avoir basculé (elle ne flotte pas)
     const wasOnBed = this.unionBox(targets).min.y <= 0.5;
     const settle = () => {
@@ -664,6 +715,8 @@ class EditModeManager {
     }
 
     if (this.app.syncPaletteToSelection) this.app.syncPaletteToSelection();
+    const impBox = document.getElementById('edit-import-box');
+    if (impBox) impBox.style.display = (n === 1 && this.selectedMesh.userData.type === 'imported' && !allLocked) ? 'block' : 'none';
     const allCutter = this.selection.every(m => m.userData.cutter);
     const cutBtn = document.getElementById('btn-edit-cutter');
     if (cutBtn) {
@@ -758,6 +811,12 @@ class EditModeManager {
       case 'tube': return (d.radius || 6) / 0.4;
       case 'balloon': return (d.thickness || 18) / 2.2 / 0.4;
       case 'pillar': return ((d.radius || 8) / 1.1 / 0.4) * uniform;
+      case 'imported': {
+        // Modèle importé : la valeur suit la plus grande dimension par rapport au plateau
+        const b = new THREE.Box3().setFromObject(m);
+        const sz = b.getSize(new THREE.Vector3());
+        return 12 + 33 * Math.min(1, Math.max(sz.x, sz.y, sz.z) / ((this.app.sceneManager.bedSize || 256) * 0.9));
+      }
       default: return ((d.size || 12) / 0.8) * uniform; // tampons et formes 3D
     }
   }

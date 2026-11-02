@@ -5,7 +5,7 @@
 class SoundEffects {
   constructor() {
     this.ctx = null;
-    this.enabled = true;
+    this.enabled = false; // son coupé par défaut (réglable par l'enseignant ou avec le bouton 🔊)
   }
 
   init() {

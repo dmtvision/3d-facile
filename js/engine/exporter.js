@@ -534,21 +534,17 @@ class Exporter3D {
 
     let offset = 84;
     triangles.forEach(tri => {
-      dataView.setFloat32(offset, tri.normal.x, true); offset += 4;
-      dataView.setFloat32(offset, tri.normal.y, true); offset += 4;
-      dataView.setFloat32(offset, tri.normal.z, true); offset += 4;
-
-      dataView.setFloat32(offset, tri.a.x, true); offset += 4;
-      dataView.setFloat32(offset, tri.a.y, true); offset += 4;
-      dataView.setFloat32(offset, tri.a.z, true); offset += 4;
-
-      dataView.setFloat32(offset, tri.b.x, true); offset += 4;
-      dataView.setFloat32(offset, tri.b.y, true); offset += 4;
-      dataView.setFloat32(offset, tri.b.z, true); offset += 4;
-
-      dataView.setFloat32(offset, tri.c.x, true); offset += 4;
-      dataView.setFloat32(offset, tri.c.y, true); offset += 4;
-      dataView.setFloat32(offset, tri.c.z, true); offset += 4;
+      // Axes d'impression : la hauteur de la scène (Y) devient l'axe Z des trancheurs (rotation de +90° autour de X),
+      // le bas du modèle reste donc sur le plateau
+      const put = (v) => {
+        dataView.setFloat32(offset, v.x, true); offset += 4;
+        dataView.setFloat32(offset, -v.z, true); offset += 4;
+        dataView.setFloat32(offset, v.y, true); offset += 4;
+      };
+      put(tri.normal);
+      put(tri.a);
+      put(tri.b);
+      put(tri.c);
 
       dataView.setUint16(offset, 0, true); offset += 2;
     });
@@ -598,7 +594,7 @@ class Exporter3D {
                 vtx.y = (vtx.y - transform.minY) * transform.scale;
                 vtx.z = (vtx.z - transform.cz) * transform.scale;
               }
-              objContent += `v ${vtx.x.toFixed(4)} ${vtx.y.toFixed(4)} ${vtx.z.toFixed(4)}\n`;
+              objContent += `v ${vtx.x.toFixed(4)} ${(-vtx.z).toFixed(4)} ${vtx.y.toFixed(4)}\n`; // Z vers le haut (trancheurs)
               keyToIdx.set(k, vertexOffset + keyToIdx.size);
             }
             return keyToIdx.get(k);
@@ -626,7 +622,7 @@ class Exporter3D {
             v.y = (v.y - transform.minY) * transform.scale;
             v.z = (v.z - transform.cz) * transform.scale;
           }
-          objContent += `v ${v.x.toFixed(4)} ${v.y.toFixed(4)} ${v.z.toFixed(4)}\n`;
+          objContent += `v ${v.x.toFixed(4)} ${(-v.z).toFixed(4)} ${v.y.toFixed(4)}\n`; // Z vers le haut (trancheurs)
         }
 
         if (index) {
@@ -720,6 +716,8 @@ class Exporter3D {
       timestamp: Date.now(),
       elements: meshes.map(m => ({
         ...m.userData,
+        // un modèle importé emporte sa géométrie dans le fichier projet
+        ...(m.userData.type === 'imported' && window.kidiApp && window.kidiApp.importer ? { geometry: window.kidiApp.importer.exportRecord(m.userData.geoId) } : {}),
         position: { x: m.position.x, y: m.position.y, z: m.position.z },
         scale: { x: m.scale.x, y: m.scale.y, z: m.scale.z },
         rotation: { x: m.rotation.x, y: m.rotation.y, z: m.rotation.z }
