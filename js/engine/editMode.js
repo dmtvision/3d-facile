@@ -16,6 +16,8 @@ class EditModeManager {
 
     // Déplacement direct d'objet avec collage de surface
     this.isDraggingMesh = false;
+    this.pendingDrag = null;
+    this.dragStamp = null;
     this.meshGhost = null;
 
     // Ligne de courbe en transparence
@@ -92,7 +94,7 @@ class EditModeManager {
           <div class="edit-controls">
             <div class="edit-caption">&#128205; Déplacer</div>
             <div class="edit-dpad-section">
-              <button id="btn-edit-tilt-x" class="edit-cross-btn edit-tilt-x ax-x" title="Basculer vers l'avant (Maj + clic : vers l'arrière)"><span class="tilt-ico">&#8635;</span><span class="tilt-txt">Basculer</span></button>
+              <button id="btn-edit-tilt-x" class="edit-cross-btn edit-tilt-x ax-x" title="Basculer vers l'avant, comme une culbute (Maj + clic : vers l'arrière)"><span class="tilt-ico">&#10227;</span><span class="tilt-txt">Basculer</span></button>
               <button id="btn-edit-move-up" class="edit-cross-btn edit-up ax-y" title="Monter">&uarr;</button>
               <button id="btn-edit-move-back" class="edit-cross-btn edit-back ax-z" title="Reculer (vers le fond)">&#8599;</button>
               <button id="btn-edit-move-left" class="edit-cross-btn edit-left ax-x" title="Déplacer à gauche">&larr;</button>
@@ -100,13 +102,13 @@ class EditModeManager {
               <button id="btn-edit-move-right" class="edit-cross-btn edit-right ax-x" title="Déplacer à droite">&rarr;</button>
               <button id="btn-edit-move-front" class="edit-cross-btn edit-front ax-z" title="Avancer (vers toi)">&#8601;</button>
               <button id="btn-edit-move-down" class="edit-cross-btn edit-down ax-y" title="Descendre">&darr;</button>
-              <button id="btn-edit-tilt-z" class="edit-cross-btn edit-tilt-z ax-z" title="Pencher vers la droite (Maj + clic : vers la gauche)"><span class="tilt-ico">&#8635;</span><span class="tilt-txt">Pencher</span></button>
+              <button id="btn-edit-tilt-z" class="edit-cross-btn edit-tilt-z ax-z" title="Pencher sur le côté droit (Maj + clic : sur le côté gauche)"><span class="tilt-ico">&#10226;</span><span class="tilt-txt">Pencher</span></button>
             </div>
             <div class="edit-axis-legend">
               <span class="lg lg-x">&harr; Gauche / droite</span>
               <span class="lg lg-y">&varr; Haut / bas</span>
               <span class="lg lg-z">&#8599;&#8601; Avant / arrière</span>
-              <span class="lg lg-t">&#8635; Basculer / pencher</span>
+              <span class="lg lg-t">&#8635; Basculer = avant · Pencher = côté</span>
             </div>
 
           </div>
@@ -177,12 +179,21 @@ class EditModeManager {
               </div>
             </div>
 
-            <div class="edit-caption">&#128260; Tourner, taille, copie</div>
-            <div class="edit-row-actions">
-              <button id="btn-edit-rot-left" class="edit-sub-btn" title="Tourner vers la gauche"><span class="e-ico">&#8634;</span>Tourner</button>
-              <button id="btn-edit-rot-right" class="edit-sub-btn" title="Tourner vers la droite"><span class="e-ico">&#8635;</span>Tourner</button>
-              <button id="btn-edit-scale-up" class="edit-sub-btn" title="Agrandir"><span class="e-ico">&#10133;</span>Agrandir</button>
-              <button id="btn-edit-scale-down" class="edit-sub-btn" title="Rétrécir"><span class="e-ico">&#10134;</span>Réduire</button>
+            <div class="edit-caption">&#128260; Pivoter (sur soi, à plat)</div>
+            <div class="edit-row-actions edit-row-2">
+              <button id="btn-edit-rot-left" class="edit-sub-btn rot-y" title="Pivoter vers la gauche (tourne sur soi-même, comme un plateau tournant)"><span class="e-ico">&#8634;</span>À gauche</button>
+              <button id="btn-edit-rot-right" class="edit-sub-btn rot-y" title="Pivoter vers la droite (tourne sur soi-même, comme un plateau tournant)"><span class="e-ico">&#8635;</span>À droite</button>
+            </div>
+            <p class="edit-rot-help"><b class="c-g">Pivoter</b> = sur soi · <b class="c-r">Basculer</b> = vers l'avant · <b class="c-b">Pencher</b> = sur le côté</p>
+
+            <div class="edit-caption">&#128207; Taille</div>
+            <div class="edit-row-actions edit-row-2">
+              <button id="btn-edit-scale-down" class="edit-sub-btn size-minus" title="Plus petit"><span class="e-ico">&#10134;</span>Plus petit</button>
+              <button id="btn-edit-scale-up" class="edit-sub-btn size-plus" title="Plus grand"><span class="e-ico">&#10133;</span>Plus grand</button>
+            </div>
+
+            <div class="edit-caption">&#129513; Outils</div>
+            <div class="edit-row-actions edit-row-2">
               <button id="btn-edit-copy" class="edit-sub-btn" title="Faire une copie"><span class="e-ico">&#128111;</span>Copier</button>
               <button id="btn-edit-flip" class="edit-sub-btn" title="Retourner de gauche à droite"><span class="e-ico">&#8596;&#65039;</span>Retourner</button>
             </div>
@@ -990,14 +1001,9 @@ class EditModeManager {
       const type = target.userData.type;
       if (type === 'tube' || type === 'balloon') return true;
 
-      // Glisser direct : on garde le décalage entre le point saisi et l'objet (il ne « saute » pas)
-      this.isDraggingMesh = true;
-      this.dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
-        this.app.sceneManager.camera.getWorldDirection(new THREE.Vector3()).negate(),
-        hits[0].point
-      );
-      this.dragOffset.copy(target.position).sub(hits[0].point);
-      this.createMeshGhost(target);
+      // Toucher ≠ glisser : la forme ne bouge pas tout de suite. Le glissement ne démarre que si l'on bouge
+      // d'au moins quelques pixels APRÈS un court instant (ou franchement vite) ; un simple toucher ne fait que sélectionner.
+      this.pendingDrag = { target, hit: hits[0].point.clone(), x: pt.x, y: pt.y, t: performance.now() };
       return true;
     }
 
@@ -1007,8 +1013,50 @@ class EditModeManager {
     return false;
   }
 
+  // Seuils du glissement : 8 px après 0,13 s, ou 45 px d'un coup (geste franc)
+  tryStartDrag(pt) {
+    const p = this.pendingDrag;
+    if (!p) return this.isDraggingMesh;
+    const dist = Math.hypot(pt.x - p.x, pt.y - p.y);
+    const elapsed = performance.now() - p.t;
+    if ((dist >= 8 && elapsed >= 130) || dist >= 45) {
+      this.pendingDrag = null;
+      this.beginMeshDrag(p.target, pt, p.hit);
+      return true;
+    }
+    return false;
+  }
+
+  // Démarre le glissement à l'endroit où l'on est RENDU : la forme ne saute pas
+  beginMeshDrag(target, pt, hit0) {
+    const rc = this.getRaycaster(pt);
+    this.isDraggingMesh = true;
+    this.dragPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(
+      this.app.sceneManager.camera.getWorldDirection(new THREE.Vector3()).negate(),
+      hit0
+    );
+    const now = rc.ray.intersectPlane(this.dragPlane, new THREE.Vector3());
+    this.dragOffset.copy(target.position).sub(now || hit0);
+
+    // Tampons et formes : on retient la surface visée au départ pour ne déplacer que du chemin parcouru
+    this.dragStamp = null;
+    if (target.userData.type === 'stamp') {
+      const others = this.app.userMeshes.filter(o => o !== target);
+      const h = rc.intersectObjects(others, true);
+      let point = null, normal = null;
+      if (h.length) { point = h[0].point.clone(); normal = MeshGenerator.getWorldNormal(h[0]); }
+      else {
+        const g = rc.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
+        if (g) { point = g; normal = new THREE.Vector3(0, 1, 0); }
+      }
+      if (point) this.dragStamp = { pos: target.position.clone(), hit: point, normal };
+    }
+    this.createMeshGhost(target);
+  }
+
   handlePointerMove(pt) {
     if (this.isInteractingWithUI) return;
+    if (this.pendingDrag && !this.tryStartDrag(pt)) return;
     const raycaster = this.getRaycaster(pt);
 
     // A. Modelage de courbe
@@ -1074,9 +1122,17 @@ class EditModeManager {
         }
 
         if (hitPoint && this.app.isInsideBed(hitPoint)) {
-          const keepScale = m.scale.clone();
-          MeshGenerator.orientMeshOnSurface(m, hitPoint, hitNormal, null, sink);
-          m.scale.copy(keepScale);
+          const st = this.dragStamp;
+          if (st && hitNormal.dot(st.normal) > 0.995) {
+            // Même surface (le sol, une face plane) : on ne fait que glisser, l'orientation choisie est conservée
+            m.position.copy(st.pos).add(hitPoint).sub(st.hit);
+          } else {
+            // Nouvelle surface (on passe sur une autre forme) : la forme s'y colle et s'oriente
+            const keepScale = m.scale.clone();
+            MeshGenerator.orientMeshOnSurface(m, hitPoint, hitNormal, null, sink);
+            m.scale.copy(keepScale);
+            this.dragStamp = { pos: m.position.clone(), hit: hitPoint.clone(), normal: hitNormal.clone() };
+          }
         } else {
           return;
         }
@@ -1115,6 +1171,8 @@ class EditModeManager {
   }
 
   handlePointerUp() {
+    this.pendingDrag = null; // simple toucher : sélection seulement, rien n'a bougé
+    this.dragStamp = null;
     this.flushRegeneration();
     if (this.isDraggingHandle) {
       this.isDraggingHandle = false;

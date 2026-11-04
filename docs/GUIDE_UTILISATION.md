@@ -240,7 +240,7 @@ Détails :
 - **Sélection multiple** : **Maj + clic** sur d'autres formes (ajoute / retire). Raccourci clavier **A** = tout sélectionner, **Alt + A** = tout désélectionner.
 - **Ctrl + clic** sur une forme avec **n'importe quel outil** = passer en Bouger et la sélectionner.
 - **Clic dans le vide** = désélectionner (sauf avec Maj). Bouton **✔️ « Fini ! »** = désélectionner.
-- **Déplacer à la souris** : une forme **non courbe** (forme 3D, tampon, pilier, modèle importé) peut être **glissée** directement ; un **fantôme** translucide montre la nouvelle position. Les **courbes** (traits, ballons) **ne se glissent pas** (cela gênerait le placement) : utiliser les points bleus, le carré « Déplacer » ou les flèches du popup.
+- **Déplacer à la souris** : une forme **non courbe** (forme 3D, tampon, pilier, modèle importé) peut être **glissée** directement ; un **fantôme** translucide montre la nouvelle position. **Toucher ≠ glisser** : un simple clic ou toucher **sélectionne sans rien bouger** ; le glissement ne démarre que si l'on déplace le pointeur d'au moins **8 pixels après environ 0,13 seconde** (ou d'un geste franc de **45 pixels**). La forme **ne saute pas** au départ et **garde son orientation** tant qu'elle glisse sur la même surface (sol, face plane) ; en passant sur une autre forme, elle s'y colle et s'oriente selon la surface. Les **courbes** (traits, ballons) **ne se glissent pas** (cela gênerait le placement) : utiliser les points bleus, le carré « Déplacer » ou les flèches du popup.
 - Les formes restent **au-dessus du plateau** (jamais sous la table) et **dans le disque** du plateau pour les déplacements.
 
 ### 8.2 Les repères autour d'une forme seule (non courbe)
@@ -266,7 +266,7 @@ De haut en bas :
    ← Gauche     |  ✋ (centre) |  → Droite
    ↙ Avancer    |  ↓ Descendre |  ↻ Pencher
    ```
-   - **Basculer** = rotation de 22,5° autour de l'axe gauche-droite de l'écran (vers l'avant) ; **Pencher** = rotation de 22,5° autour de l'axe de profondeur (vers la droite). **Maj + clic** inverse le sens. Une forme posée sur la table **reste posée** après avoir basculé.
+   - **Trois rotations, trois couleurs** (comme les axes) : **🟢 Pivoter** = tourner sur soi-même, à plat, autour de la verticale (boutons « À gauche » / « À droite », bloc « Pivoter ») ; **🔴 Basculer** = culbute vers l'avant, autour de l'axe gauche-droite de l'écran ; **🔵 Pencher** = bascule sur le côté, autour de l'axe de profondeur. Basculer et Pencher tournent de 22,5° par appui ; **Maj + clic** inverse le sens. Une forme posée sur la table **reste posée** après avoir basculé.
    - Légende colorée : ↔ gauche/droite (rouge), ↕ haut/bas (vert), ↗↙ avant/arrière (bleu), ↻ basculer/pencher.
    - Sous la croix : **🔒 « Verrouiller »** (§8.6) et **🕳️ « Creuser les autres formes »** (§10).
 4. Colonne droite — selon la forme :
@@ -275,7 +275,7 @@ De haut en bas :
    - **🎈 Mon ballon** (ballons) — Épaisseur / Bords arrondis / Contour lisse / « ↺ Réglages d'origine » (§5.2).
    - **📐 Proportions** (formes seules, non courbes) — ouvert par défaut sur ordinateur, replié sur petit écran : **Largeur / Hauteur / Profondeur** ×0,2–×3 ; **🔗 Liés** conserve le rapport entre axes quand on change l'un d'eux ; **↺ Reset 1:1** remet la taille d'origine.
    - **📥 Modèle importé** (§11).
-   - **🔄 Tourner, taille, copie** : **Tourner** ↺ / ↻ (22,5° autour de l'axe vertical ; un tampon tourne autour de son propre « haut »), **Agrandir** (×1,15), **Réduire** (×0,87), **Copier** (👯 : copie décalée de ±20 mm, libre même si l'original est verrouillé), **Retourner** (↔️ miroir gauche-droite de la forme).
+   - Trois blocs : **🔄 Pivoter (sur soi, à plat)** : **À gauche** ↺ / **À droite** ↻ (22,5° autour de l'axe vertical ; un tampon tourne autour de son propre « haut »), avec un rappel « Pivoter = sur soi · Basculer = vers l'avant · Pencher = sur le côté » ; **📏 Taille** : **Plus petit** (➖, ×0,87) et **Plus grand** (➕, ×1,15), côte à côte ; **🧩 Outils** : **Copier** (👯 : copie décalée de ±20 mm, libre même si l'original est verrouillé) et **Retourner** (↔️ miroir gauche-droite de la forme).
 - En **sélection multiple**, « Proportions » et « Retourner » sont masqués ; les autres actions s'appliquent au groupe, autour du centre commun.
 
 ### 8.4 Modifier une courbe (traits et ballons) : les points bleus
@@ -284,7 +284,7 @@ De haut en bas :
 - Pas de glisser-déposer de la courbe entière (voulu) : pour la déplacer, utiliser les **flèches** du popup, ou **G** au clavier (§12).
 
 ### 8.5 Rotation, échelle, copie, retournement — rappels de valeurs
-Pas de rotation 22,5° · échelle ×1,15 / ×0,87 · copie +20 mm (côté libre du plateau) · repère Tourner : accroche 15° · proportions ×0,2–×3.
+Pas de rotation 22,5° · échelle ×1,15 (Plus grand) / ×0,87 (Plus petit) · copie +20 mm (côté libre du plateau) · repère Tourner : accroche 15° · proportions ×0,2–×3.
 
 ### 8.6 Verrouiller
 **🔒 « Verrouiller »** (message « 🔒 Verrouillé : cette forme ne bougera plus. ») : la forme ne peut plus être déplacée, tournée, agrandie, coloriée ni effacée ; une pastille 🔒 flotte au-dessus ; le popup est grisé sauf le bouton **« Déverrouiller »** (« 🔓 Déverrouillé. »). Bandeau : « 🔒 Forme verrouillée : elle ne peut plus bouger. » Utile pour protéger une partie terminée.
