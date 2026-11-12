@@ -306,24 +306,84 @@ const CSGLib = (() => {
     return loading;
   }
 
-  function toManifold(tris) {
+  // color (facultatif) : [r, g, b] de 0 à 1, gardé comme propriété de sommet (couleurs de l'OBJ)
+  function toManifold(tris, color = null) {
     const Q = 1000;
+    const np = color ? 6 : 3;
     const index = new Map();
     const verts = [];
     const idx = [];
     const id = v => {
       const k = Math.round(v.x * Q) + ',' + Math.round(v.y * Q) + ',' + Math.round(v.z * Q);
       let i = index.get(k);
-      if (i === undefined) { i = verts.length / 3; index.set(k, i); verts.push(v.x, v.y, v.z); }
+      if (i === undefined) {
+        i = verts.length / np;
+        index.set(k, i);
+        verts.push(v.x, v.y, v.z);
+        if (color) verts.push(color[0], color[1], color[2]);
+      }
       return i;
     };
     tris.forEach(t => {
       const a = id(t[0]), b = id(t[1]), c = id(t[2]);
       if (a !== b && b !== c && a !== c) idx.push(a, b, c);
     });
-    const mesh = new wasm.Mesh({ numProp: 3, vertProperties: new Float32Array(verts), triVerts: new Uint32Array(idx) });
+    const mesh = new wasm.Mesh({ numProp: np, vertProperties: new Float32Array(verts), triVerts: new Uint32Array(idx) });
     mesh.merge();
     return new wasm.Manifold(mesh); // lève une erreur si la forme n'est pas étanche
+  }
+
+  /**
+   * Modèle d'impression : toutes les pièces FUSIONNÉES en un seul volume étanche, trous soustraits,
+   * coupe à la table (plan y = clipY) si demandée. Les couleurs des pièces sont conservées par sommet.
+   * solids : [{ tris, color:[r,g,b] }] ; cutters : [tris] ; clipY : nombre ou null.
+   * Renvoie { positions, colors, indices, failed } ou null si le moteur n'est pas prêt.
+   * failed = indices des pièces non étanches (elles ne sont pas fusionnées : à exporter à part).
+   */
+  function buildPrint(solids, cutters, clipY) {
+    if (!wasm) return null;
+    const made = [];
+    const keep = (m) => { made.push(m); return m; };
+    try {
+      const parts = [];
+      const failed = [];
+      solids.forEach((s, i) => {
+        try { parts.push(keep(toManifold(s.tris, s.color || [0.8, 0.8, 0.8]))); } catch (e) { failed.push(i); }
+      });
+      if (!parts.length) return { positions: new Float32Array(0), colors: new Float32Array(0), indices: new Uint32Array(0), failed };
+      let cur = parts.length === 1 ? parts[0] : keep(wasm.Manifold.union(parts));
+      const cuts = [];
+      (cutters || []).forEach(t => { try { cuts.push(keep(toManifold(t, [0.8, 0.8, 0.8]))); } catch (e) { /* trou non étanche : ignoré */ } });
+      if (cuts.length) {
+        const cu = cuts.length === 1 ? cuts[0] : keep(wasm.Manifold.union(cuts));
+        cur = keep(cur.subtract(cu));
+      }
+      if (clipY !== null && clipY !== undefined) {
+        if (typeof cur.trimByPlane === 'function') cur = keep(cur.trimByPlane([0, 1, 0], clipY));
+        else {
+          const big = 1e5;
+          const box = keep(wasm.Manifold.cube([big, big, big], true).translate([0, clipY + big / 2, 0]));
+          cur = keep(cur.intersect(box));
+        }
+      }
+      const m = cur.getMesh();
+      const np = m.numProp;
+      const n = m.vertProperties.length / np;
+      const positions = new Float32Array(n * 3);
+      const colors = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) {
+        for (let c = 0; c < 3; c++) {
+          positions[i * 3 + c] = m.vertProperties[i * np + c];
+          colors[i * 3 + c] = np >= 6 ? m.vertProperties[i * np + 3 + c] : 0.8;
+        }
+      }
+      return { positions, colors, indices: new Uint32Array(m.triVerts), failed };
+    } catch (e) {
+      console.warn('Fusion des pièces impossible : export pièce par pièce', e);
+      return null;
+    } finally {
+      made.forEach(o => { if (o && o.delete) o.delete(); });
+    }
   }
 
   function manifoldSubtract(trisA, trisB) {
@@ -452,7 +512,7 @@ const CSGLib = (() => {
     return box;
   }
 
-  return { subtract, carveIndexed, creaseNormals, boxOf, preload, isReady: () => !!wasm };
+  return { subtract, carveIndexed, buildPrint, creaseNormals, boxOf, preload, isReady: () => !!wasm };
 })();
 
 window.CSGLib = CSGLib;

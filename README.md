@@ -4,6 +4,8 @@ Application web sans installation (JavaScript + Three.js r128, aucun outil de bu
 exporte son modèle en **STL / OBJ** pour l'imprimer. Il suffit de déposer le dossier sur un serveur web
 (ou de lancer un petit serveur local) et d'ouvrir `index.html`.
 
+> 🤖 **Créer des tutoriels avec une IA** (captures, étapes vérifiées) : [docs/tutorial-kit/README.md](docs/tutorial-kit/README.md) — voir aussi [AGENTS.md](AGENTS.md)
+>
 > 📖 **Guide d'utilisation complet** (libellés exacts, valeurs, étapes, recettes de tutoriels) : [docs/GUIDE_UTILISATION.md](docs/GUIDE_UTILISATION.md)
 
 ## Outils

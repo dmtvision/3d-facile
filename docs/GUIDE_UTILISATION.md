@@ -34,7 +34,7 @@ Principes à connaître :
 - Le **plateau est circulaire** pour le dessin : on ne peut pas dessiner ni poser en dehors d'un disque de rayon *(taille du plateau ÷ 2) − 4 mm*. Le plateau d'impression réel est carré (réglage), la grille affichée correspond à sa taille.
 - Chaque **forme** est un objet séparé : trait (tube), ballon, pilier, forme 3D, tampon, ou modèle importé. On peut les sélectionner, déplacer, tourner, agrandir, colorier, copier, verrouiller, effacer, ou transformer en **trou**.
 - L'application **sauvegarde automatiquement** dans le navigateur et reprend le dessin au prochain lancement (§13).
-- Le fichier exporté est **étanche** (« Manifold ») et **posé à plat** (le bas du modèle est sur le plateau), avec coupe automatique à la table si le réglage est activé (§14).
+- Le fichier exporté est **un seul volume étanche** (toutes les formes fusionnées) et **posé à plat** (le bas du modèle est sur le plateau), avec coupe automatique à la table si le réglage est activé (§14).
 
 ---
 
@@ -221,7 +221,7 @@ Détails :
 - **En mode Bouger avec une ou plusieurs formes sélectionnées** : **clic sur une couleur = colorie toute la sélection** (message « 🎨 Coloriée ! » / « 🎨 Formes coloriées ! »). Les formes verrouillées sont ignorées (« 🔒 Forme verrouillée… »), un trou refuse (« 🕳️ Un trou n'a pas de couleur : il est rouge pour le repérer. »).
 - **Tampons** : si le tampon utilise la couleur choisie (iris des yeux), c'est cette partie qui change ; sinon sa **partie principale** est coloriée (ex. la bande de la couronne) et les détails gardent leurs teintes.
 - Quand on sélectionne une forme dont la couleur fait partie de la palette, la pastille correspondante est mise en évidence.
-- ⚠️ L'**OBJ n'embarque pas les couleurs** (voir §14.4) : les couleurs servent à l'affichage dans l'atelier. Le **STL** n'a pas de couleurs non plus.
+- L'**OBJ** exporté **garde les couleurs** (une couleur par sommet, voir §14.4). Le **STL** n'a pas de couleurs (format sans couleur).
 
 ---
 
@@ -426,16 +426,16 @@ Ils agissent sur la **sélection** (mode Bouger). Sans sélection, **G**, **R**,
 Ouverte par **🖨️ « Imprimer mon dessin »**. Elle affiche :
 - **Parties 3D** : nombre de formes (hors trous).
 - **Dimensions réelles** : « L × P × H mm » **telles qu'elles seront imprimées** (après réduction éventuelle au plateau et coupe à la table).
-- **100 % Manifold Étanche** (pastille verte).
 - Une note éventuelle : « 📏 Ton dessin est imprimé N fois plus petit pour tenir sur le plateau. »
 - **Finition de surface & Topologie** : **✨ Lisse & Haute Définition** (par défaut, recommandé pour imprimer) ou **🧊 Topologie Épurée (Pour Blender)** (maillage plus léger, pour la subdivision).
 - **Fichier STL** — bouton **« Télécharger .STL »** → `Export3D.stl` (binaire). « 🚀 Fichier STL téléchargé ! »
-- **Fichier OBJ** — bouton **« Télécharger .OBJ »** → `Export3D.obj`. « 🎨 Fichier OBJ téléchargé avec succès ! »
+- **Fichier OBJ (Blender et autres logiciels 3D)** — « Avec les couleurs… » — bouton **« Télécharger .OBJ »** → `Export3D.obj`. « 🎨 Fichier OBJ téléchargé ! »
 - **Sauvegarder le Projet** — « Sauvegarder .kid3d » / « Ouvrir un projet ».
 - Si rien n'est dessiné : « Dessine d'abord quelque chose avant d'imprimer ! ».
 
 ### 14.2 Ce que fait l'export (dans cet ordre)
-1. **Trous** : les formes marquées « trou » sont soustraites des autres, puis retirées du fichier.
+1. **Fusion** : toutes les formes sont **fusionnées en un seul volume étanche** (les parties qui se chevauchent ne forment plus qu'un objet, sans faces internes), avec le moteur manifold-3d.
+1. **Trous** : les formes marquées « trou » sont soustraites du volume, puis retirées du fichier.
 2. **Coupe à la table** (réglage activé par défaut) : tout ce qui est **sous le plateau** est supprimé et la coupe est **refermée par un fond plat** (fichier étanche). Désactivable (§15).
 3. **Échelle d'impression** : le modèle est multiplié par *1 ÷ échelle de travail*. Puis, **s'il dépasse 90 % du plateau** (en largeur, profondeur ou hauteur), il est **réduit** pour tenir (marge de sécurité de 10 %). **Jamais agrandi.**
 4. **Centrage** : le modèle est **centré** sur l'origine en X/Y d'impression et son **bas est à Z = 0**.
@@ -446,8 +446,8 @@ Ouverte par **🖨️ « Imprimer mon dessin »**. Elle affiche :
 Réglage « Espace de création » : ×1 / ×1,5 / ×2 / ×3. Le plateau de dessin est agrandi d'autant ; à l'export le modèle est **divisé** par ce facteur. Le rayon minimal des traits et l'enfoncement de 1,5 mm sont aussi multipliés pour rester corrects une fois réduits.
 
 ### 14.4 Formats
-- **STL binaire** : triangles sans couleur. Compatible Cura, Bambu Studio, PrusaSlicer, Toybox…
-- **OBJ** : texte, sommets partagés, groupes par forme (`g Object_i_j`). **Sans couleurs ni matériaux** (la carte d'export l'indique : « Maillage sans couleurs ») ; mêmes axes que le STL (Z vers le haut). ⚠️ Un OBJ ouvert dans Blender avec ses réglages par défaut (Y vers le haut) apparaît **couché**.
+- **STL binaire** : un seul volume étanche (vérifié : aucune arête ouverte ni partagée par plus de deux faces, faces bien orientées), sans couleur. Compatible Cura, Bambu Studio, PrusaSlicer, Toybox…
+- **OBJ** : le même volume étanche, **avec les couleurs** (une couleur par sommet : `v x y z r g b`, lue par Blender, Bambu Studio, MeshLab… ; PrusaSlicer l'ignore) ; mêmes axes que le STL (Z vers le haut). Avec la finition « 🧊 Topologie Épurée (Pour Blender) », l'OBJ garde au contraire les formes séparées et leurs quadrilatères (pour retravailler dans Blender, pas pour imprimer). ⚠️ Un OBJ ouvert dans Blender avec ses réglages par défaut (Y vers le haut) apparaît **couché**.
 - **`.kid3d`** : JSON du projet (pas un format d'impression).
 
 ### 14.5 Conseils d'impression à intégrer aux tutoriels
@@ -546,7 +546,7 @@ Le **mode compact** s'active automatiquement quand la fenêtre fait **820 px de 
 - **Pas de grille magnétique** ni de mesure de cotes dans l'atelier (les dimensions réelles sont données à l'export).
 - **Pas de panoramique au doigt** sur écran tactile.
 - **Tampons et couleur** : les tampons gardent leurs couleurs naturelles tant qu'aucune couleur n'a été cliquée dans la palette (§5.5). Certains tampons à plusieurs pièces ne colorient que leur partie principale.
-- **L'OBJ et le STL n'ont pas de couleurs** : la couleur ne sert qu'à l'affichage dans l'atelier.
+- **Couleurs à l'export** : seul l'OBJ (finition « Lisse ») les contient, par sommet ; le STL n'en a pas. Une imprimante multicolore lit l'OBJ selon son trancheur.
 - **Rayon minimal** : le réglage « Rayon minimal des traits » s'applique au **rayon** (un tube de rayon 5 mm fait 10 mm de diamètre).
 - **Modèles importés** : couleurs / textures ignorées ; limite 400 000 triangles ; peuvent ne pas être étanches.
 - **Trous** : nécessitent internet pour le moteur robuste ; la découpe de secours est moins fiable sur les courbes.

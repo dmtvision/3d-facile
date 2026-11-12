@@ -74,6 +74,7 @@ class Kidi3DApp {
     this.teacherController = new TeacherController(this);
     this.editManager = new EditModeManager(this);
     this.booleanPreview = new BooleanPreview(this);
+    if (window.CSGLib) CSGLib.preload(); // moteur de fusion chargé dès le départ : l'export produit un seul volume étanche
     this.keyTransform = new KeyTransform(this);
     this.importer = new ModelImporter(this);
     this.booleanPreview.setEnabled(this.teacherController.settings.booleanPreview !== false);
@@ -1783,7 +1784,8 @@ class Kidi3DApp {
     // 8. Modale Export 3D
     document.getElementById('btn-print-modal').addEventListener('click', () => this.openExportModal());
 
-    document.getElementById('btn-download-stl').addEventListener('click', () => {
+    document.getElementById('btn-download-stl').addEventListener('click', async () => {
+      if (window.CSGLib) await CSGLib.preload(); // attend le moteur de fusion s'il n'est pas encore prêt
       const exportList = [...this.userMeshes];
       if (this.baseMesh) exportList.push(this.baseMesh);
       else if (this.teacherController.settings.autoBase) {
@@ -1805,13 +1807,14 @@ class Kidi3DApp {
       }
     });
 
-    document.getElementById('btn-download-obj').addEventListener('click', () => {
+    document.getElementById('btn-download-obj').addEventListener('click', async () => {
+      if (window.CSGLib) await CSGLib.preload();
       const exportList = [...this.userMeshes];
       if (this.baseMesh) exportList.push(this.baseMesh);
       const qualityEl = document.querySelector('input[name="export-quality"]:checked');
       const quality = qualityEl ? qualityEl.value : 'smooth';
-      Exporter3D.exportOBJ(exportList, 'Export3D.obj', true, this.teacherController.settings.bedSize || 180, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
-      this.showToast('🎨 Fichier OBJ téléchargé avec succès !');
+      const ok = Exporter3D.exportOBJ(exportList, 'Export3D.obj', true, this.teacherController.settings.bedSize || 180, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
+      this.showToast(ok ? '🎨 Fichier OBJ téléchargé !' : "Dessine d'abord quelque chose avant d'exporter !");
     });
 
     document.querySelectorAll('input[name="export-quality"]').forEach(r => {

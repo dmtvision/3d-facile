@@ -114,7 +114,8 @@ class Exporter3D {
         list.push({
           geometry: tubeGeo,
           matrixWorld: mesh.matrixWorld,
-          isTemporary: true
+          isTemporary: true,
+          color: this.colorOf(mesh)
         });
         return list;
       }
@@ -140,7 +141,8 @@ class Exporter3D {
         list.push({
           geometry: blobData.geometry,
           matrixWorld: mesh.matrixWorld,
-          isTemporary: true
+          isTemporary: true,
+          color: this.colorOf(mesh)
         });
         return list;
       }
@@ -157,7 +159,8 @@ class Exporter3D {
         list.push({
           geometry: pillarData.geometry,
           matrixWorld: mesh.matrixWorld,
-          isTemporary: true
+          isTemporary: true,
+          color: this.colorOf(mesh)
         });
         return list;
       }
@@ -178,7 +181,8 @@ class Exporter3D {
         list.push({
           geometry: exportGeo,
           matrixWorld: child.matrixWorld,
-          isTemporary: isTemp
+          isTemporary: isTemp,
+          color: this.colorOf(child)
         });
       }
     });
@@ -367,10 +371,151 @@ class Exporter3D {
     return tris;
   }
 
+  // ------------------------------------------------------------------ modèle d'impression fusionné
+  /** Couleur [r, g, b] (0..1) d'une pièce, telle qu'affichée (même pendant l'aperçu des trous). */
+  static colorOf(obj) {
+    const app = window.kidiApp;
+    const mat = app && app.booleanPreview ? app.booleanPreview.matOf(obj) : obj.material;
+    const c = mat && mat.color;
+    return c ? [c.r, c.g, c.b] : [0.8, 0.8, 0.8];
+  }
+
+  /**
+   * Toutes les pièces fusionnées en UN volume étanche (manifold-3d) : plus de coques qui se chevauchent,
+   * trous soustraits, coupe à la table propre. Renvoie null si le moteur n'est pas disponible (export pièce par pièce).
+   * Les pièces non étanches (rare : modèles importés abîmés) sont ajoutées à part dans « extra ».
+   */
+  static buildPrintMesh(meshes, quality, truncate) {
+    if (!window.CSGLib || !CSGLib.isReady()) return null;
+    const parts = [];
+    meshes.forEach(m => {
+      if (!m.visible) return;
+      m.updateWorldMatrix(true, true);
+      this.getGeometriesForExport(m, quality).forEach(item => {
+        const tris = this.worldTriangles(item.geometry, item.matrixWorld);
+        if (item.isTemporary) item.geometry.dispose();
+        if (tris.length) parts.push({ tris, color: item.color || [0.8, 0.8, 0.8] });
+      });
+    });
+    if (!parts.length) return null;
+    const cutters = this._cutters || [];
+    const res = CSGLib.buildPrint(parts, cutters.map(c => c.tris), truncate ? 0 : null);
+    if (!res) return null;
+    res.extra = res.failed.map(i => {
+      let t = parts[i].tris;
+      const box = CSGLib.boxOf(t);
+      cutters.filter(c => c.box.intersectsBox(box)).forEach(c => { t = CSGLib.subtract(t, c.tris); });
+      if (truncate) t = this.truncateAtTable(t);
+      return { tris: t, color: parts[i].color };
+    });
+    if (res.failed.length) console.warn(`${res.failed.length} pièce(s) non étanche(s) exportée(s) sans fusion`);
+    return res;
+  }
+
+  /**
+   * Placement d'impression calculé sur le volume réellement exporté : centré en X/Y, bas exactement à Z = 0,
+   * échelle d'impression appliquée puis réduction si le modèle dépasse 90 % du plateau (jamais agrandi).
+   */
+  static _printTransform(print, bedSize, userScale) {
+    const min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+    const grow = (x, y, z) => {
+      if (x < min[0]) min[0] = x; if (y < min[1]) min[1] = y; if (z < min[2]) min[2] = z;
+      if (x > max[0]) max[0] = x; if (y > max[1]) max[1] = y; if (z > max[2]) max[2] = z;
+    };
+    const P = print.positions;
+    for (let i = 0; i < P.length; i += 3) grow(P[i], P[i + 1], P[i + 2]);
+    print.extra.forEach(e => e.tris.forEach(t => t.forEach(v => grow(v.x, v.y, v.z))));
+    if (!Number.isFinite(min[0])) return (x, y, z) => [x, -z, y];
+    const cx = (min[0] + max[0]) / 2, cz = (min[2] + max[2]) / 2, minY = min[1];
+    const limit = bedSize * 0.9;
+    const scale = userScale * Math.min(1,
+      limit / Math.max(1, (max[0] - min[0]) * userScale),
+      limit / Math.max(1, (max[2] - min[2]) * userScale),
+      limit / Math.max(1, (max[1] - min[1]) * userScale));
+    // Repère d'impression : la hauteur de la scène (Y) devient l'axe Z (rotation de +90° autour de X)
+    return (x, y, z) => [(x - cx) * scale, -(z - cz) * scale, (y - minY) * scale];
+  }
+
+  static _writePrintSTL(print, meshes, filename, autoFit, bedSize, userScale, truncate) {
+    const tf = this._printTransform(print, bedSize, userScale);
+    const tris = [];
+    const P = print.positions, I = print.indices;
+    for (let i = 0; i < I.length; i += 3) tris.push([I[i], I[i + 1], I[i + 2]].map(k => tf(P[k * 3], P[k * 3 + 1], P[k * 3 + 2])));
+    print.extra.forEach(e => e.tris.forEach(t => tris.push(t.map(v => tf(v.x, v.y, v.z)))));
+
+    const kept = [];
+    tris.forEach(([a, b, c]) => {
+      const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      const l = Math.hypot(n[0], n[1], n[2]);
+      if (l > 1e-12) kept.push([[n[0] / l, n[1] / l, n[2] / l], a, b, c]);
+    });
+    if (!kept.length) return false;
+
+    const buffer = new ArrayBuffer(84 + kept.length * 50);
+    const dv = new DataView(buffer);
+    const header = 'Export 3D-Facile';
+    for (let i = 0; i < 80; i++) dv.setUint8(i, i < header.length ? header.charCodeAt(i) : 0);
+    dv.setUint32(80, kept.length, true);
+    let o = 84;
+    kept.forEach(rec => {
+      rec.forEach(vec => { dv.setFloat32(o, vec[0], true); dv.setFloat32(o + 4, vec[1], true); dv.setFloat32(o + 8, vec[2], true); o += 12; });
+      dv.setUint16(o, 0, true); o += 2;
+    });
+    this.triggerDownload(new Blob([buffer], { type: 'application/octet-stream' }), filename);
+    return true;
+  }
+
+  // OBJ : sommets partagés, couleur par sommet (« v x y z r g b », lu par Blender, Bambu Studio, MeshLab…)
+  static _writePrintOBJ(print, meshes, filename, autoFit, bedSize, userScale, truncate) {
+    const tf = this._printTransform(print, bedSize, userScale);
+    const lines = ['# 3D Exported Wavefront OBJ - 3D-Facile (Z vers le haut, couleurs par sommet)', 'o Modele'];
+    const f4 = (n) => n.toFixed(4);
+    const f3 = (n) => Math.min(1, Math.max(0, n)).toFixed(3);
+    const P = print.positions, C = print.colors, I = print.indices;
+    // Le moteur dédouble les sommets à la frontière de deux couleurs : on les ressoude par position pour que
+    // le fichier reste fermé (étanche) ; un sommet de frontière prend la couleur de l'une des deux pièces.
+    const weld = new Map();
+    const remap = new Uint32Array(P.length / 3);
+    let n = 0;
+    for (let i = 0; i < P.length / 3; i++) {
+      const v = tf(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]);
+      const key = `${f4(v[0])} ${f4(v[1])} ${f4(v[2])}`;
+      let k = weld.get(key);
+      if (k === undefined) {
+        k = ++n;
+        weld.set(key, k);
+        lines.push(`v ${key} ${f3(C[i * 3])} ${f3(C[i * 3 + 1])} ${f3(C[i * 3 + 2])}`);
+      }
+      remap[i] = k;
+    }
+    for (let i = 0; i < I.length; i += 3) {
+      const a = remap[I[i]], b = remap[I[i + 1]], c = remap[I[i + 2]];
+      if (a !== b && b !== c && a !== c) lines.push(`f ${a} ${b} ${c}`);
+    }
+    let offset = n + 1;
+    print.extra.forEach((e, k) => {
+      lines.push(`o Piece_${k + 1}`);
+      e.tris.forEach(t => {
+        t.forEach(p => { const v = tf(p.x, p.y, p.z); lines.push(`v ${f4(v[0])} ${f4(v[1])} ${f4(v[2])} ${f3(e.color[0])} ${f3(e.color[1])} ${f3(e.color[2])}`); });
+        lines.push(`f ${offset} ${offset + 1} ${offset + 2}`);
+        offset += 3;
+      });
+    });
+    if (!I.length && !print.extra.length) return false;
+    this.triggerDownload(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' }), filename);
+    return true;
+  }
+
   static exportSTLBinary(meshes, filename = 'Export3D.stl', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
     this._cutters = this.collectCutters(meshes, quality);
     try {
-      return this._exportSTLBinary(this.solids(meshes), filename, autoFit, bedSize, quality, userScale, truncate);
+      const solids = this.solids(meshes);
+      if (!solids.length) return false;
+      // Impression : un seul volume étanche (fusion), sinon export pièce par pièce
+      const print = this.buildPrintMesh(solids, quality, truncate);
+      if (print) return this._writePrintSTL(print, solids, filename, autoFit, bedSize, userScale, truncate);
+      return this._exportSTLBinary(solids, filename, autoFit, bedSize, quality, userScale, truncate);
     } finally {
       this._cutters = null;
     }
@@ -379,7 +524,14 @@ class Exporter3D {
   static exportOBJ(meshes, filename = 'Export3D.obj', autoFit = true, bedSize = 180, quality = 'smooth', userScale = 1, truncate = false) {
     this._cutters = this.collectCutters(meshes, quality);
     try {
-      return this._exportOBJ(this.solids(meshes), filename, autoFit, bedSize, quality, userScale, truncate);
+      const solids = this.solids(meshes);
+      if (!solids.length) return false;
+      // « Topologie épurée (Blender) » : on garde les pièces séparées et leurs quadrilatères ; sinon volume fusionné en couleurs
+      if (quality !== 'lowpoly') {
+        const print = this.buildPrintMesh(solids, quality, truncate);
+        if (print) return this._writePrintOBJ(print, solids, filename, autoFit, bedSize, userScale, truncate);
+      }
+      return this._exportOBJ(solids, filename, autoFit, bedSize, quality, userScale, truncate);
     } finally {
       this._cutters = null;
     }

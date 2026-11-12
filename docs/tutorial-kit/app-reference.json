@@ -1,0 +1,247 @@
+{
+  "$comment": "Référence machine de 3D-Facile pour générer des tutoriels sans erreur. Libellés EXACTS de l'interface (français). Valeurs vérifiées dans le code. À utiliser avec docs/GUIDE_UTILISATION.md et docs/tutorial-kit/tutokit.js.",
+  "app": {
+    "name": "3D-Facile",
+    "entry": "index.html",
+    "runtime": "navigateur, Three.js r128 (CDN cdnjs) ; manifold-3d (CDN jsDelivr) pour les trous ; connexion internet requise",
+    "globalObject": "window.kidiApp",
+    "axesInApp": { "X": "gauche / droite (rouge)", "Y": "haut / bas = hauteur (vert)", "Z": "avant / arrière = profondeur (bleu)" },
+    "axesInExport": "STL et OBJ : Z vers le haut (hauteur de l'atelier Y -> Z d'impression), bas du modèle à Z = 0, centré en X/Y",
+    "units": "mm",
+    "startState": { "tool": "tube", "size": 20, "color": "#ff4757", "view": "front", "sound": "off", "mirror": false }
+  },
+  "topBar": [
+    { "id": "btn-undo", "label": "Annuler", "icon": "↩️", "shortcut": "Ctrl+Z" },
+    { "id": "btn-redo", "label": "Refaire", "icon": "↪️", "shortcut": "Ctrl+Y" },
+    { "id": "btn-clear", "label": "Tout effacer", "icon": "🗑️", "confirm": "Veux-tu vraiment tout effacer pour recommencer à zéro ?", "note": "vide aussi l'historique d'annulation" },
+    { "id": "btn-import-model", "label": "Importer", "icon": "📥", "accepts": [".stl", ".obj"] },
+    { "id": "btn-sound-toggle", "label": null, "icon": "🔇 / 🔊", "default": "son coupé (🔇)" },
+    { "id": "btn-toggle-hint", "label": null, "icon": "❓", "effect": "affiche / masque la bulle d'aide" },
+    { "id": "btn-print-modal", "label": "Imprimer mon dessin", "icon": "🖨️" },
+    { "id": "btn-teacher-open", "label": null, "icon": "⚙️", "title": "Paramètres Enseignant" }
+  ],
+  "tools": [
+    { "tool": "tube", "buttonId": "tool-tube", "label": "Trait", "group": "DESSINER" },
+    { "tool": "balloon", "buttonId": "tool-balloon", "label": "Ballon", "group": "DESSINER", "panelId": "balloon-options-dock" },
+    { "tool": "shape3d", "buttonId": "tool-shapes", "label": "Formes", "group": "CONSTRUIRE", "panelId": "geo-shapes-dock" },
+    { "tool": "pillar", "buttonId": "tool-pillar", "label": "Pilier", "group": "CONSTRUIRE", "panelId": "pillar-profiles-dock" },
+    { "tool": "stamp", "buttonId": "tool-stamps", "label": "Tampon", "group": "CONSTRUIRE", "panelId": "stamps-drawer" },
+    { "tool": "edit", "buttonId": "tool-edit", "label": "Bouger", "group": "MODIFIER", "panelId": "edit-action-bar (quand une forme est sélectionnée)" },
+    { "tool": "eraser", "buttonId": "tool-eraser", "label": "Gomme", "group": "MODIFIER" },
+    { "tool": null, "buttonId": "btn-mirror", "label": "Miroir : non / oui", "group": "SYMÉTRIE", "effect": "copie symétrique par rapport au plan x = 0" }
+  ],
+  "hints": {
+    "tube": "✏️ Dessine une ligne avec la souris : elle devient un tube 3D !",
+    "balloon": "🎈 Dessine une forme fermée (reviens à ton point de départ) : elle se gonfle en ballon !",
+    "pillar": "🏛️ Trace un trait de bas en haut : ça fait un pilier bien droit.",
+    "stamp": "⭐ Choisis un tampon, puis clique sur ton dessin. Reste appuyé et glisse pour l'orienter !",
+    "shape3d": "🔷 Choisis une forme, règle ses proportions, puis clique pour la poser.",
+    "edit": "✋ Touche une forme : bouge-la, agrandis-la, tourne-la, ou choisis une couleur pour la peindre !",
+    "eraser": "🧽 Touche une forme pour la faire disparaître (elle devient rouge avant)."
+  },
+  "size": {
+    "inputId": "input-global-thickness", "label": "Taille", "min": 12, "max": 45, "default": 20, "unit": "mm",
+    "endButtons": { "btn-thickness-min": 12, "btn-thickness-max": 45 },
+    "strokeRadius": "max(rayonMinimal × échelleDeTravail, arrondi(Taille × 0,4))",
+    "shapeAndStampSize": "Taille × 0,8 mm",
+    "withSelection": "en mode Bouger, le curseur redimensionne la sélection"
+  },
+  "palette": [
+    { "hex": "#ff4757", "label": "Rouge" }, { "hex": "#ffa502", "label": "Orange" }, { "hex": "#f1c40f", "label": "Jaune" },
+    { "hex": "#2ed573", "label": "Vert" }, { "hex": "#1e90ff", "label": "Bleu" }, { "hex": "#9b59b6", "label": "Violet" },
+    { "hex": "#ff6b81", "label": "Rose" }, { "hex": "#a0522d", "label": "Marron" }, { "hex": "#747d8c", "label": "Gris" },
+    { "hex": "#ffffff", "label": "Blanc" }, { "hex": "#2f3542", "label": "Noir" }
+  ],
+  "colorRules": [
+    "Traits, ballons, piliers, formes 3D : couleur de la palette à la création.",
+    "Tampons : couleurs naturelles tant qu'aucune couleur n'a été CLIQUÉE dans la palette ; ensuite la partie principale prend la couleur choisie. Les yeux colorient toujours leur iris.",
+    "Mode Bouger + sélection : un clic sur une couleur colorie toute la sélection (sauf formes verrouillées et trous).",
+    "STL exporté : sans couleur. OBJ exporté (finition Lisse) : couleur par sommet."
+  ],
+  "shapes": [
+    { "id": "cube", "label": "Cube" }, { "id": "sphere", "label": "Sphère" }, { "id": "cylinder", "label": "Cylindre" },
+    { "id": "cone", "label": "Cône" }, { "id": "torus", "label": "Donut" }, { "id": "pyramid", "label": "Pyramide" }
+  ],
+  "placementProportions": {
+    "sliders": { "scale-place-x": "Largeur", "scale-place-y": "Hauteur", "scale-place-z": "Profondeur" },
+    "min": 0.2, "max": 3, "step": 0.05,
+    "lockButton": { "id": "btn-toggle-placement-lock", "labels": ["🔗 Liés", "🔓 Libres"] },
+    "resetButton": { "id": "btn-reset-placement-scale", "label": "↺ Reset 1:1" }
+  },
+  "stamps": [
+    { "id": "eye_single", "label": "Œil", "naturalColor": "palette (iris)" },
+    { "id": "eyes_cartoon", "label": "Deux yeux", "naturalColor": "palette (iris)" },
+    { "id": "mouth", "label": "Bouche", "naturalColor": "#e11d48" },
+    { "id": "nose", "label": "Nez", "naturalColor": "#ff4757" },
+    { "id": "ear", "label": "Oreille", "naturalColor": "#ffb8b8" },
+    { "id": "hand", "label": "Main", "naturalColor": "#ffa502" },
+    { "id": "foot", "label": "Pied", "naturalColor": "#34495e" },
+    { "id": "wings", "label": "Ailes", "naturalColor": "#dbeafe" },
+    { "id": "horns", "label": "Cornes", "naturalColor": "#f8d9a0" },
+    { "id": "antenna", "label": "Antenne", "naturalColor": "#ef4444" },
+    { "id": "tail", "label": "Queue", "naturalColor": "#ffa502" },
+    { "id": "bow", "label": "Nœud", "naturalColor": "#ec4899" },
+    { "id": "crown", "label": "Couronne", "naturalColor": "#f1c40f" },
+    { "id": "cone_hat", "label": "Chapeau", "naturalColor": "#9b59b6" },
+    { "id": "heart", "label": "Cœur", "naturalColor": "#ff4757" },
+    { "id": "star", "label": "Étoile", "naturalColor": "#f1c40f" },
+    { "id": "flower", "label": "Fleur", "naturalColor": "#ff6b81" },
+    { "id": "wheel", "label": "Roue", "naturalColor": "#2f3542" }
+  ],
+  "stampPlacement": {
+    "click": "posé perpendiculairement à la surface touchée",
+    "holdAndDrag": "incline : direction du glissement = sens, distance = angle (0 à 180° pour ~120 px, zone morte 4 px)",
+    "sinkOnObject": "1,5 mm × échelle de travail",
+    "compactScreen": "le tiroir se referme après le choix d'un tampon ; toucher « Tampon » pour le rouvrir"
+  },
+  "pillarProfiles": [
+    { "id": "square", "label": "Carré" }, { "id": "hexagon", "label": "Hexagone" }, { "id": "fluted", "label": "Cannelé" },
+    { "id": "wall", "label": "Mur" }, { "id": "round", "label": "Rond" }
+  ],
+  "pillarRules": "vertical à la position moyenne du tracé ; hauteur = du plus bas au plus haut du tracé (min 15 mm) ; part du plateau si le bas est sous 20 mm ; rayon = rayon du trait × 1,1",
+  "balloonOptions": {
+    "panelTitle": "🎈 Mon ballon",
+    "sliders": [
+      { "id": "draw-balloon-depth", "label": "Épaisseur", "min": 14, "max": "60 × échelle de travail", "unit": "mm", "default": "auto (rayon × 2,2)" },
+      { "id": "draw-balloon-round", "label": "Bords arrondis", "min": 0, "max": 100, "unit": "%" },
+      { "id": "draw-balloon-smooth", "label": "Contour lisse", "min": 1, "max": 5, "default": 3 }
+    ],
+    "reset": { "id": "btn-draw-balloon-reset", "label": "↺ Réglages d'origine" },
+    "closingDistancePx": 55,
+    "orientation": "le ballon est dans le plan de l'écran au moment du tracé (la vue compte)"
+  },
+  "strokeDepthRules": [
+    "1. point sur une forme touchée par le pointeur",
+    "2. sinon forme la plus proche à moins de 60 px à l'écran",
+    "3. sinon le plateau si le tracé est dans le disque du plateau",
+    "4. sinon le centre de ce qui est déjà dessiné"
+  ],
+  "bed": {
+    "shapeForDrawing": "disque de rayon (tailleDuPlateau × échelle) / 2 − 4 mm",
+    "outOfBedMessages": ["⚠️ Ton dessin dépasse du socle !", "⚠️ Reste sur le plateau pour poser ton objet !"]
+  },
+  "cameraDock": {
+    "title": "🧭 Tourne ton dessin",
+    "gizmo": "gizmo-container (« 👆 Glisse sur la boule »)",
+    "buttons": [
+      { "id": "btn-cam-up", "title": "Regarder d'en haut" }, { "id": "btn-cam-down", "title": "Regarder d'en bas" },
+      { "id": "btn-cam-left", "title": "Tourner à gauche", "step": "30°" }, { "id": "btn-cam-right", "title": "Tourner à droite", "step": "30°" },
+      { "id": "btn-zoom-in", "title": "Se rapprocher" }, { "id": "btn-zoom-out", "title": "S'éloigner" }
+    ],
+    "views": [
+      { "selector": ".cam-pill[data-view=front]", "label": "Face" }, { "selector": ".cam-pill[data-view=side]", "label": "Côté" },
+      { "selector": ".cam-pill[data-view=top]", "label": "Dessus" }
+    ],
+    "moveAll": {
+      "title": "✥ Tout déplacer",
+      "arrows": "boutons .ma-btn[data-r][data-b] (▲ reculer, ◀ gauche, ▶ droite, ▼ avancer), pas 8 mm × échelle, répétition après 0,35 s",
+      "dragHandle": "btn-all-drag (✥)",
+      "center": "btn-all-center (◎) — « ◎ Sculpture centrée sur le plateau »"
+    },
+    "compactToggle": "btn-cam-toggle (🧭) sur petit écran"
+  },
+  "mouse": {
+    "rightDrag": "pivoter la vue", "middleDrag": "déplacer la vue", "altLeftDrag": "déplacer la vue",
+    "wheel": "zoomer", "shiftLeftDrag": "zoomer (pas au-dessus d'une forme en mode Bouger)",
+    "ctrlClickOnShape": "passe en Bouger et sélectionne", "shiftClickInEdit": "sélection multiple"
+  },
+  "touch": { "twoFingerPinch": "zoom", "twoFingerDrag": "tourner la vue", "oneFinger": "dessiner / sélectionner", "pan": "aucun" },
+  "editPopup": {
+    "id": "edit-action-bar",
+    "header": [
+      { "id": "btn-edit-delete", "label": "🗑️ Jeter" },
+      { "id": "btn-edit-deselect", "label": "✔️ Fini !" },
+      { "id": "btn-edit-min", "label": "▼ / ▲ Options", "onlyCompact": true }
+    ],
+    "moveCaption": "📍 Déplacer",
+    "movePad": [
+      { "id": "btn-edit-tilt-x", "label": "Basculer", "effect": "rotation 22,5° autour de l'axe gauche-droite de l'écran (culbute vers l'avant), Maj+clic = sens inverse", "color": "rouge" },
+      { "id": "btn-edit-move-up", "label": "↑", "title": "Monter", "step": "8 mm" },
+      { "id": "btn-edit-move-back", "label": "↗", "title": "Reculer (vers le fond)", "step": "8 mm" },
+      { "id": "btn-edit-move-left", "label": "←", "title": "Déplacer à gauche", "step": "8 mm" },
+      { "id": "btn-edit-move-right", "label": "→", "title": "Déplacer à droite", "step": "8 mm" },
+      { "id": "btn-edit-move-front", "label": "↙", "title": "Avancer (vers toi)", "step": "8 mm" },
+      { "id": "btn-edit-move-down", "label": "↓", "title": "Descendre", "step": "8 mm" },
+      { "id": "btn-edit-tilt-z", "label": "Pencher", "effect": "rotation 22,5° autour de l'axe de profondeur (sur le côté), Maj+clic = sens inverse", "color": "bleu" }
+    ],
+    "lock": { "id": "btn-edit-lock", "labels": ["🔒 Verrouiller", "🔓 Déverrouiller"], "banner": "🔒 Forme verrouillée : elle ne peut plus bouger." },
+    "cutter": { "id": "btn-edit-cutter", "labels": ["🕳️ Creuser les autres formes", "🧱 Redevenir une forme pleine", "Creuser avec ces formes"] },
+    "tubeThickness": { "id": "input-edit-thickness", "label": "📏 Épaisseur", "min": 4, "max": 40 },
+    "pointThickness": { "id": "input-edit-handle-thickness", "label": "🔵 Épaisseur du point", "min": 2, "max": 50 },
+    "balloonBox": { "label": "🎈 Mon ballon", "ids": ["edit-balloon-depth", "edit-balloon-round", "edit-balloon-smooth", "btn-balloon-reset"] },
+    "proportions": { "summary": "📐 Proportions", "ids": ["edit-scale-x", "edit-scale-y", "edit-scale-z", "btn-edit-scale-lock", "btn-edit-scale-reset"], "range": [0.2, 3] },
+    "importBox": { "caption": "📥 Modèle importé", "buttons": {
+      "btn-imp-tilt-x": "Basculer 90°", "btn-imp-tilt-z": "Pencher 90°", "btn-imp-ground": "Poser",
+      "btn-imp-fit": "Taille auto", "btn-imp-real": "Taille réelle", "btn-imp-center": "Centrer" } },
+    "pivotBlock": { "caption": "🔄 Pivoter (sur soi, à plat)", "buttons": { "btn-edit-rot-left": "↺ À gauche", "btn-edit-rot-right": "↻ À droite" }, "step": "22,5° autour de la verticale", "color": "vert",
+      "help": "Pivoter = sur soi · Basculer = vers l'avant · Pencher = sur le côté" },
+    "sizeBlock": { "caption": "📏 Taille", "buttons": { "btn-edit-scale-down": "➖ Plus petit (×0,87)", "btn-edit-scale-up": "➕ Plus grand (×1,15)" } },
+    "toolsBlock": { "caption": "🧩 Outils", "buttons": { "btn-edit-copy": "👯 Copier (décalé de ±20 mm)", "btn-edit-flip": "↔️ Retourner (miroir gauche-droite)" } },
+    "hiddenInMultiSelection": ["Proportions", "Retourner"]
+  },
+  "transformHandles": [
+    { "id": "width", "label": "Largeur", "shape": "rond rouge", "action": "tirer vers l'extérieur / l'intérieur" },
+    { "id": "height", "label": "Hauteur", "shape": "rond vert", "action": "idem" },
+    { "id": "depth", "label": "Profondeur", "shape": "rond bleu", "action": "idem" },
+    { "id": "rotate", "label": "Tourner", "shape": "petit rond orange", "action": "glisser gauche/droite, accroche 15°" },
+    { "id": "move", "label": "Déplacer", "shape": "carré gris-bleu", "action": "glisser sur le plateau" },
+    { "id": "lift", "label": "Monter", "shape": "carré vert-bleu", "action": "glisser haut/bas" }
+  ],
+  "handlesRules": "zone morte 8 px ; ×0,25 à ×4 par geste ; absents pour courbes et formes verrouillées ; en multi-sélection seulement Tourner, Déplacer, Monter ; s'effacent pendant la navigation",
+  "dragRules": "un toucher sélectionne sans bouger ; le glissement d'une forme démarre après 8 px ET 0,13 s, ou 45 px d'un coup ; la forme garde son orientation sur la même surface ; traits et ballons ne se glissent pas",
+  "curveHandles": { "color": "points bleus (actif : jaune)", "tube": "3 à 6", "balloon": "4 à 6" },
+  "keyboard": {
+    "start": { "g": "Déplacer", "r": "Tourner (R encore : libre)", "s": "Agrandir" },
+    "during": {
+      "x|y|z": "axe X gauche/droite, Y haut/bas, Z avant/arrière ; 2e appui = axe de la forme ; 3e = libre",
+      "Shift+x|y|z": "plan sans cet axe",
+      "digits . , - Backspace": "valeur exacte (mm / degrés / facteur)",
+      "Ctrl": "accroche 5 mm / 15°",
+      "Enter|Space|clic gauche": "valider",
+      "Escape|clic droit": "annuler"
+    },
+    "idle": { "a": "tout sélectionner", "Alt+a": "tout désélectionner", "Delete|x": "jeter (mode Bouger)", "Shift+d": "copier", "Numpad1|3|7": "vues face / côté / dessus", "Ctrl+z|Ctrl+y": "annuler / refaire" },
+    "hud": "#key-hud (bandeau sombre en haut)",
+    "azertyNote": "chiffres de la rangée du haut = Maj + touche ; préférer le pavé numérique"
+  },
+  "import": {
+    "maxTriangles": 400000, "autoSize": "plus grande dimension ≈ 45 % du plateau", "stlUp": "Z", "objUp": "Y (sauf OBJ exportés par l'appli : Z)",
+    "messages": ["📥 Import de « {fichier} »…", "✅ « {nom} » importé et posé sur le plateau ({n} triangles). Mal orienté ? Utilise « Basculer 90° »."]
+  },
+  "cutters": {
+    "button": "🕳️ Creuser les autres formes", "look": "rouge translucide", "livePreview": "au repos, ~0,25 s après le dernier geste ; désactivé au-delà de 24 formes touchées",
+    "toast": "🕳️ Trou ! Cette forme creusera les autres (elle ne sera pas imprimée)."
+  },
+  "exportModal": {
+    "id": "modal-export", "title": "🎉 Bravo ! Prêt pour l'Impression 3D !",
+    "stats": ["Parties 3D", "Dimensions réelles"],
+    "quality": { "smooth": "✨ Lisse & Haute Définition (défaut)", "lowpoly": "🧊 Topologie Épurée (Pour Blender)" },
+    "buttons": { "btn-download-stl": "Télécharger .STL → Export3D.stl", "btn-download-obj": "Télécharger .OBJ → Export3D.obj (avec les couleurs)", "btn-save-project": "Sauvegarder .kid3d → mon-projet-kidi3d.kid3d", "input-load-project": "Ouvrir un projet" },
+    "pipeline": ["fusion de toutes les formes en un seul volume étanche (manifold-3d)", "soustraction des trous", "coupe à la table (si activée)", "÷ échelle de travail puis réduction si > 90 % du plateau (jamais agrandi)", "centrage X/Y, bas à Z = 0", "conversion Y-haut -> Z-haut", "socle automatique si activé"]
+  },
+  "teacherSettings": {
+    "open": "btn-teacher-open (⚙️)", "pinDefault": "1234 (verrou désactivé par défaut)", "save": "btn-save-teacher-settings « Enregistrer les réglages »",
+    "tabs": ["🖨️ Imprimante 3D", "🎨 Outils & Pédagogie", "📖 Fiche Trancheur"],
+    "fields": [
+      { "id": "setting-bed-size", "label": "Dimensions du plateau d'impression (mm)", "values": [120, 180, 220, 256, 300, 400], "default": 256 },
+      { "id": "setting-work-scale", "label": "Espace de création (échelle d'impression)", "values": [1, 1.5, 2, 3], "default": 1 },
+      { "id": "setting-min-thickness", "label": "Rayon minimal des traits", "values": [8, 5, 3], "default": 5 },
+      { "id": "setting-truncate-bed", "label": "Couper les modèles au niveau de la table", "default": true },
+      { "id": "setting-boolean-preview", "label": "Aperçu en direct des trous", "default": true },
+      { "id": "setting-auto-base", "label": "Générer automatiquement un socle", "default": false },
+      { "id": "setting-show-grid", "label": "Afficher le plateau sous forme de grille 3D", "default": true },
+      { "id": "setting-invert-pan", "label": "Inverser le sens du Pan horizontal", "default": false },
+      { "id": "toggle-tool-balloon|pillar|shapes|stamps|edit", "label": "afficher / masquer les outils", "default": true },
+      { "id": "toggle-sound-effects", "label": "Effets sonores", "default": false },
+      { "id": "setting-ui-scale", "label": "Taille de l'interface", "values": ["auto", 0.8, 1, 1.2, 1.4], "default": "auto" },
+      { "id": "setting-enable-pin", "label": "Verrouiller l'accès prof avec un code secret", "default": false }
+    ]
+  },
+  "compactMode": {
+    "trigger": "largeur ≤ 820 px ou hauteur ≤ 560 px (classe html.compact ; paysage bas : html.compact-landscape)",
+    "layout": "barre du haut en icônes ; outils en grille 4 colonnes (portrait) ou 8 (paysage) ; caméra repliée (🧭) ; volets au-dessus du dock (portrait, ≤ 50 % de hauteur) ou à droite (paysage)",
+    "validated": "validé sur smartphone par le propriétaire de l'application"
+  },
+  "storageKeys": ["kidi3d_autosave", "kidi3d_geo_<id>", "kidi3d_bed_size", "kidi3d_work_scale", "kidi3d_min_thickness", "kidi3d_truncate_bed", "kidi3d_bool_preview", "kidi3d_auto_base", "kidi3d_show_grid", "kidi3d_tool_*", "kidi3d_sound", "kidi3d_ui_scale", "kidi3d_invert_pan_x", "kidi3d_use_pin", "kidi3d_teacher_pin"],
+  "notFeatures": ["union / intersection booléenne", "texte 3D", "sculpture à la brosse", "couleurs dans le STL", "panoramique au doigt", "mesure de cotes dans l'atelier", "grille magnétique"]
+}
