@@ -15,7 +15,7 @@
 4. **Toujours préciser l'outil actif** (barre du bas) avant un geste dans la scène : le même clic fait des choses différentes selon l'outil.
 5. **Vocabulaire des axes** : l'application affiche trois axes colorés. **X rouge = gauche/droite**, **Y vert = haut/bas** (la hauteur), **Z bleu = avant/arrière** (la profondeur). Les tutoriels doivent utiliser ce vocabulaire, pas celui de Blender (où Z est la hauteur). À l'**export**, les axes sont convertis (hauteur → Z) : voir §14.
 6. **Ne pas promettre ce qui n'existe pas** : consulter §19 (limites) avant d'écrire une affirmation.
-7. **Public cible de l'application** : enfants de 4 à 10 ans, avec un adulte (enseignant) pour les réglages et l'impression. Un tutoriel « enfant » utilise des phrases courtes et les icônes ; un tutoriel « enseignant » détaille réglages et impression.
+7. **Public cible de l'application** : enfants de 6 à 10 ans, avec un adulte (enseignant) pour les réglages et l'impression. Un tutoriel « enfant » utilise des phrases courtes et les icônes ; un tutoriel « enseignant » détaille réglages et impression.
 
 ### 0.2 Structure recommandée d'un tutoriel
 1. **But** (ce qu'on obtient, avec une phrase et une image de résultat) · 2. **Matériel / réglages préalables** · 3. **Étapes numérotées** (action → résultat attendu) · 4. **Vérification** (comment savoir que c'est bon) · 5. **Pour l'impression** (épaisseurs, supports, orientation) · 6. **Problèmes fréquents**.
@@ -41,10 +41,10 @@ Principes à connaître :
 ## 2. Lancer l'application
 
 - Ouvrir `index.html` via un **petit serveur web** (par exemple `python -m http.server 8000` dans le dossier, puis `http://localhost:8000`) ou le déposer sur un hébergement statique. L'ouverture directe du fichier (`file://`) peut être bloquée par certains navigateurs.
-- **Connexion internet nécessaire** : Three.js est chargé depuis un CDN (cdnjs) et le moteur de soustraction des trous (manifold-3d) depuis jsDelivr. Sans réseau la scène 3D ne s'affiche pas.
+- **Aucune connexion nécessaire** : Three.js, le moteur de fusion et de trous (manifold-3d) et les polices sont hébergés avec l'application (`vendor/`). Aucune requête ne part vers l'extérieur : l'application fonctionne sur un réseau d'établissement fermé et aucune donnée ne quitte le poste.
 - Navigateurs récents (Chrome, Edge, Firefox, Safari) avec WebGL.
 - Les données (dessin, réglages, modèles importés) sont stockées dans le **localStorage du navigateur** (clés `kidi3d_*`) : elles sont propres à un navigateur et à une adresse.
-- Au démarrage : message « Bienvenue dans ton atelier Kidi3D ! », outil **Trait** actif, vue de **face**, taille **20 mm**, couleur **rouge**, **son coupé** (🔇).
+- Au démarrage : message « Bienvenue dans ton atelier 3D-Facile ! », outil **Trait** actif, vue de **face**, taille **20 mm**, couleur **rouge**, **son coupé** (🔇).
 
 ---
 
@@ -413,7 +413,8 @@ Ils agissent sur la **sélection** (mode Bouger). Sans sélection, **G**, **R**,
 | **Annuler / Refaire** | boutons ↩️ / ↪️ ou `Ctrl+Z` / `Ctrl+Y` | Message « ↩️ C'est annulé ! ». Chaque création, déplacement validé, coloriage, suppression, import… est une étape |
 | **Tout effacer** | 🗑️ | Confirmation, puis scène **et historique** vidés (plus d'annulation possible) |
 | **Sauvegarde automatique** | automatique | Dans le navigateur (`kidi3d_autosave`) ; le dessin **réapparaît au prochain lancement** |
-| **Sauvegarder le projet** | 🖨️ Imprimer → **« Sauvegarder .kid3d »** | Télécharge `mon-projet-kidi3d.kid3d` (JSON) : formes + modèles importés. « 💾 Projet sauvegardé ! » |
+| **Sauvegarder le projet** | 🖨️ Imprimer → **« Sauvegarder .kid3d »** | Télécharge `3D-Facile_AAAA-MM-JJ_HHhMM.kid3d` (JSON) : formes + modèles importés. « 💾 Projet sauvegardé ! » |
+| **Reprise sur poste partagé** | automatique au démarrage | S'il reste un dessin : fenêtre « Un dessin est en cours sur ce poste » avec **« Reprendre le dessin »** ou **« Nouveau dessin »** (efface le dessin précédent) |
 | **Ouvrir un projet** | 🖨️ Imprimer → **« Ouvrir un projet »** | Charge un `.kid3d`. « 🎉 Projet ouvert avec succès ! » ; sinon « Fichier projet non reconnu. » |
 - La sauvegarde automatique **ne dépasse pas** la capacité du navigateur (quelques Mo) ; pour les gros modèles importés, utiliser le fichier projet.
 - Changer de navigateur, d'ordinateur ou d'adresse **n'emporte pas** la sauvegarde automatique : exporter le `.kid3d`.
@@ -428,8 +429,8 @@ Ouverte par **🖨️ « Imprimer mon dessin »**. Elle affiche :
 - **Dimensions réelles** : « L × P × H mm » **telles qu'elles seront imprimées** (après réduction éventuelle au plateau et coupe à la table).
 - Une note éventuelle : « 📏 Ton dessin est imprimé N fois plus petit pour tenir sur le plateau. »
 - **Finition de surface & Topologie** : **✨ Lisse & Haute Définition** (par défaut, recommandé pour imprimer) ou **🧊 Topologie Épurée (Pour Blender)** (maillage plus léger, pour la subdivision).
-- **Fichier STL** — bouton **« Télécharger .STL »** → `Export3D.stl` (binaire). « 🚀 Fichier STL téléchargé ! »
-- **Fichier OBJ (Blender et autres logiciels 3D)** — « Avec les couleurs… » — bouton **« Télécharger .OBJ »** → `Export3D.obj`. « 🎨 Fichier OBJ téléchargé ! »
+- **Fichier STL** — bouton **« Télécharger .STL »** → `3D-Facile_AAAA-MM-JJ_HHhMM.stl` (date et heure de l'export, aucune donnée personnelle). « 🚀 Fichier STL téléchargé ! ». Si certaines pièces n'ont pas pu être fusionnées : « ⚠️ Fichier STL téléchargé, mais certaines pièces n'ont pas pu être fusionnées : vérifie-le dans le trancheur avant d'imprimer. »
+- **Fichier OBJ (Blender et autres logiciels 3D)** — « Avec les couleurs… » — bouton **« Télécharger .OBJ »** → `3D-Facile_AAAA-MM-JJ_HHhMM.obj`. « 🎨 Fichier OBJ téléchargé ! »
 - **Sauvegarder le Projet** — « Sauvegarder .kid3d » / « Ouvrir un projet ».
 - Si rien n'est dessiné : « Dessine d'abord quelque chose avant d'imprimer ! ».
 
@@ -462,7 +463,7 @@ Réglage « Espace de création » : ×1 / ×1,5 / ×2 / ×3. Le plateau de dess
 
 ## 15. Réglages enseignant (⚙️ « Espace Professeur »)
 
-Ouverture : bouton **⚙️** (info-bulle « Paramètres Enseignant »). Si le **code secret** est activé : saisir le code (**1234 par défaut**, 4 chiffres) puis « Déverrouiller » ; code faux : « Code PIN incorrect (Code par défaut: 1234) ». Enregistrer avec **« Enregistrer les réglages »** (« ✅ Réglages enregistrés ! »). Ils sont gardés dans le navigateur.
+Ouverture : bouton **⚙️** (info-bulle « Paramètres Enseignant »). Si le **code secret** est activé : saisir le code (4 à 6 chiffres) puis « Déverrouiller » ; code faux : « Code incorrect. ». Le code n'est jamais affiché ni enregistré en clair (seulement son empreinte). Pour activer le verrou, il faut choisir un code de 4 à 6 chiffres. Code oublié : effacer les données du site dans le navigateur (cela réinitialise aussi les réglages). Enregistrer avec **« Enregistrer les réglages »** (« ✅ Réglages enregistrés ! »). Ils sont gardés dans le navigateur.
 
 ### Onglet « 🖨️ Imprimante 3D »
 | Réglage | Valeurs | Défaut | Effet |
@@ -535,7 +536,7 @@ Le **mode compact** s'active automatiquement quand la fenêtre fait **820 px de 
 | « 🕳️ Un trou n'a pas de couleur… » | On colorie un trou | Le repasser en forme pleine d'abord |
 | « 📥 Ce modèle est trop détaillé… » | > 400 000 triangles | Simplifier le modèle avant import |
 | Modèle importé couché | Orientation du fichier différente | « Basculer 90° » / « Pencher 90° » |
-| Rien ne se charge / écran vide | Pas de connexion (CDN), ou ouverture en `file://` | Utiliser un serveur local, vérifier le réseau |
+| Rien ne se charge / écran vide | Ouverture en `file://` ou fichiers `vendor/` manquants | Servir le dossier complet avec un serveur web |
 | Perte du dessin | Autre navigateur / effacement des données du navigateur | Sauvegarder en `.kid3d` régulièrement |
 | Le STL arrive « sur le dos » dans le trancheur | (corrigé) ancienne version exportait en Y vers le haut | Utiliser la version actuelle (export Z vers le haut) |
 
@@ -560,7 +561,7 @@ Le **mode compact** s'active automatiquement quand la fenêtre fait **820 px de 
 
 > Chaque recette donne l'objectif, les réglages et les étapes avec résultat attendu. Adapter le vocabulaire à l'âge visé.
 
-### Recette A — « Mon premier trait » (4–6 ans, 5 min)
+### Recette A — « Mon premier trait » (6–7 ans, 5 min)
 1. Outil **Trait** actif (par défaut). Taille **20 mm**, couleur au choix.
 2. Dessiner une ligne ondulée sur le plateau → **un tube 3D** apparaît.
 3. Cliquer **Face / Côté / Dessus** pour le regarder sous plusieurs angles.

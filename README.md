@@ -1,4 +1,4 @@
-# 🪄 3D-Facile — atelier de dessin 3D pour enfants (4-10 ans)
+# 🪄 3D-Facile — atelier de dessin 3D pour enfants (6 à 10 ans)
 
 Application web sans installation (JavaScript + Three.js r128, aucun outil de build) : l'enfant dessine en 3D et
 exporte son modèle en **STL / OBJ** pour l'imprimer. Il suffit de déposer le dossier sur un serveur web
@@ -42,8 +42,7 @@ Les modèles importés sont conservés dans la sauvegarde automatique (si assez 
 Dans le popup de *Bouger*, le bouton **Creuser les autres formes** transforme la forme en trou : elle apparaît en rouge
 translucide, n'est pas imprimée et retire de la matière à toutes les formes qu'elle traverse. L'aperçu du résultat
 est calculé en direct quand la scène est au repos (réglage enseignant : *Aperçu en direct des trous*). L'export STL/OBJ
-applique toujours la soustraction (moteur [manifold-3d](https://github.com/elalish/manifold), chargé depuis un CDN,
-avec une découpe de secours intégrée si le moteur n'est pas disponible).
+applique toujours la soustraction (moteur [manifold-3d](https://github.com/elalish/manifold), hébergé avec l'application).
 
 ## Réglages enseignant (⚙️)
 
@@ -53,7 +52,13 @@ aperçu des trous, outils visibles, code PIN.
 
 ## Export
 
-Un seul bouton **Imprimer mon dessin** : `Export3D.stl` ou `Export3D.obj`, modèle étanche (2-manifold), posé à plat sur la table.
+Un seul bouton **Imprimer mon dessin** : fichiers `3D-Facile_AAAA-MM-JJ_HHhMM.stl` / `.obj`, un seul volume étanche posé à plat sur la table (OBJ avec les couleurs).
+
+## Fonctionnement hors connexion et données
+
+Toutes les bibliothèques (Three.js, manifold-3d) et les polices (Fredoka, Nunito) sont hébergées dans `vendor/` : l'application **ne contacte aucun service extérieur**
+et fonctionne sur un réseau d'établissement fermé. Aucune donnée ne quitte le poste : le dessin et les réglages restent dans le navigateur.
+Licences des composants tiers : [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Licence de l'application : [LICENSE](LICENSE).
 Le projet peut aussi être sauvegardé / rouvert (`.kid3d`). L'autosauvegarde utilise le stockage local du navigateur.
 
 ## Organisation du code

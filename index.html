@@ -2,24 +2,22 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>3D-Facile - Dessin 3D Magique pour Enfants & Impression 3D</title>
-  <meta name="description" content="Application web de dessin 3D simplifiée pour enfants (6-10 ans) avec génération de formes étanches prêtes pour l'impression 3D.">
+  <meta name="description" content="Application web de dessin 3D simplifiée pour enfants (6 à 10 ans) avec génération de formes étanches prêtes pour l'impression 3D.">
   
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/fonts.css?v=75">
   
-  <link rel="stylesheet" href="css/style.css?v=73">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="stylesheet" href="css/style.css?v=75">
+  <script src="vendor/three/three.min.js"></script>
 </head>
 <body>
   <!-- Header / Barre supérieure épurée -->
   <header id="top-bar">
     <div class="logo-area">
       <span class="logo-icon">✨</span>
-      <h1 class="logo-title">3D<span>Facile</span></h1>
+      <h1 class="logo-title">3D-<span>Facile</span></h1>
     </div>
 
     <!-- Actions rapides (Annuler, Rétablir, Tout effacer, Son, Aide) -->
@@ -398,9 +396,8 @@
       <div id="teacher-lock-screen" class="teacher-view hidden">
         <p class="lock-instruction">Entrez le code enseignant pour accéder aux paramètres :</p>
         <div class="pin-display">
-          <input type="password" id="teacher-pin-input" maxlength="4" placeholder="••••" autocomplete="off">
+          <input type="password" id="teacher-pin-input" maxlength="6" inputmode="numeric" placeholder="••••" autocomplete="off" aria-label="Code enseignant">
         </div>
-        <p class="pin-hint">Code par défaut : <strong>1234</strong></p>
         <div class="modal-actions">
           <button id="btn-verify-pin" class="pill-btn primary-btn">Déverrouiller</button>
         </div>
@@ -529,8 +526,8 @@
           </div>
 
           <div class="settings-row">
-            <label for="setting-new-pin">Changer le code secret (si activé) :</label>
-            <input type="text" id="setting-new-pin" maxlength="6" placeholder="Ex: 1234">
+            <label for="setting-new-pin">Nouveau code secret (4 à 6 chiffres) :</label>
+            <input type="password" id="setting-new-pin" maxlength="6" inputmode="numeric" autocomplete="new-password" placeholder="••••">
           </div>
         </div>
 
@@ -633,23 +630,40 @@
     </div>
   </div>
 
+  <!-- Poste partagé : reprendre le dessin en cours ou commencer une nouvelle feuille -->
+  <div id="modal-resume" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="resume-title">
+    <div class="modal-card resume-card">
+      <div class="modal-header">
+        <h2 id="resume-title">Un dessin est en cours sur ce poste</h2>
+      </div>
+      <div class="resume-body">
+        <p id="resume-text">Tu peux le reprendre ou commencer un nouveau dessin.</p>
+        <div class="resume-actions">
+          <button id="btn-resume-continue" class="pill-btn secondary-btn" type="button">Reprendre le dessin</button>
+          <button id="btn-resume-new" class="pill-btn primary-btn" type="button">Nouveau dessin</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container"></div>
 
   <!-- Scripts -->
-  <script src="js/ui/sound.js?v=73"></script>
-  <script src="js/engine/curves.js?v=73"></script>
-  <script src="js/engine/meshGen.js?v=73"></script>
-  <script src="js/engine/scene.js?v=73"></script>
-  <script src="js/engine/cameraController.js?v=73"></script>
-  <script src="js/engine/gizmo.js?v=73"></script>
-  <script src="js/engine/transformHandles.js?v=73"></script>
-  <script src="js/engine/editMode.js?v=73"></script>
-  <script src="js/engine/csg.js?v=73"></script>
-  <script src="js/engine/exporter.js?v=73"></script>
-  <script src="js/engine/booleanPreview.js?v=73"></script>
-  <script src="js/engine/keyTransform.js?v=73"></script>
-  <script src="js/engine/importer.js?v=73"></script>
-  <script src="js/ui/teacherModal.js?v=73"></script>
-  <script src="js/app.js?v=73"></script>
+  <script src="js/ui/storage.js?v=75"></script>
+  <script src="js/ui/sound.js?v=75"></script>
+  <script src="js/engine/curves.js?v=75"></script>
+  <script src="js/engine/meshGen.js?v=75"></script>
+  <script src="js/engine/scene.js?v=75"></script>
+  <script src="js/engine/cameraController.js?v=75"></script>
+  <script src="js/engine/gizmo.js?v=75"></script>
+  <script src="js/engine/transformHandles.js?v=75"></script>
+  <script src="js/engine/editMode.js?v=75"></script>
+  <script src="js/engine/csg.js?v=75"></script>
+  <script src="js/engine/exporter.js?v=75"></script>
+  <script src="js/engine/booleanPreview.js?v=75"></script>
+  <script src="js/engine/keyTransform.js?v=75"></script>
+  <script src="js/engine/importer.js?v=75"></script>
+  <script src="js/ui/teacherModal.js?v=75"></script>
+  <script src="js/app.js?v=75"></script>
 </body>
 </html>

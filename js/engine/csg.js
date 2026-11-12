@@ -293,7 +293,8 @@ const CSGLib = (() => {
 
   // ------------------------------------------------------------------ moteur robuste (manifold-3d, WASM)
   // Chargé en avance dès qu'un trou existe ; si pas prêt ou si une forme n'est pas étanche, on utilise le BSP ci-dessus.
-  const MANIFOLD_URL = 'https://cdn.jsdelivr.net/npm/manifold-3d@3.0.1/';
+  // Hébergé avec l'application (aucun appel extérieur) : vendor/manifold/ à côté de index.html
+  const MANIFOLD_URL = new URL('vendor/manifold/', document.baseURI).href;
   let wasm = null;
   let loading = null;
 

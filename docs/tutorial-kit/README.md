@@ -35,7 +35,7 @@ Depuis la racine du projet :
 python -m http.server 8791
 ```
 Puis ouvrir `http://localhost:8791/index.html?t=<horodatage>` (le paramètre évite les fichiers en cache).
-Une connexion internet est nécessaire (Three.js et le moteur des trous viennent d'un CDN).
+Aucune connexion internet n'est nécessaire : bibliothèques et polices sont dans `vendor/`.
 
 ### 2.2 Charger le kit dans la page
 Dans l'outil « exécuter du JavaScript » du navigateur piloté :

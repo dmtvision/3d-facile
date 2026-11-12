@@ -3,7 +3,7 @@
   "app": {
     "name": "3D-Facile",
     "entry": "index.html",
-    "runtime": "navigateur, Three.js r128 (CDN cdnjs) ; manifold-3d (CDN jsDelivr) pour les trous ; connexion internet requise",
+    "runtime": "navigateur ; Three.js r128 et manifold-3d 3.0.1 hébergés dans vendor/ ; polices locales ; aucun appel extérieur",
     "globalObject": "window.kidiApp",
     "axesInApp": { "X": "gauche / droite (rouge)", "Y": "haut / bas = hauteur (vert)", "Z": "avant / arrière = profondeur (bleu)" },
     "axesInExport": "STL et OBJ : Z vers le haut (hauteur de l'atelier Y -> Z d'impression), bas du modèle à Z = 0, centré en X/Y",
@@ -216,11 +216,11 @@
     "id": "modal-export", "title": "🎉 Bravo ! Prêt pour l'Impression 3D !",
     "stats": ["Parties 3D", "Dimensions réelles"],
     "quality": { "smooth": "✨ Lisse & Haute Définition (défaut)", "lowpoly": "🧊 Topologie Épurée (Pour Blender)" },
-    "buttons": { "btn-download-stl": "Télécharger .STL → Export3D.stl", "btn-download-obj": "Télécharger .OBJ → Export3D.obj (avec les couleurs)", "btn-save-project": "Sauvegarder .kid3d → mon-projet-kidi3d.kid3d", "input-load-project": "Ouvrir un projet" },
+    "buttons": { "btn-download-stl": "Télécharger .STL → 3D-Facile_AAAA-MM-JJ_HHhMM.stl", "btn-download-obj": "Télécharger .OBJ → 3D-Facile_AAAA-MM-JJ_HHhMM.obj (avec les couleurs)", "btn-save-project": "Sauvegarder .kid3d → 3D-Facile_AAAA-MM-JJ_HHhMM.kid3d", "input-load-project": "Ouvrir un projet" },
     "pipeline": ["fusion de toutes les formes en un seul volume étanche (manifold-3d)", "soustraction des trous", "coupe à la table (si activée)", "÷ échelle de travail puis réduction si > 90 % du plateau (jamais agrandi)", "centrage X/Y, bas à Z = 0", "conversion Y-haut -> Z-haut", "socle automatique si activé"]
   },
   "teacherSettings": {
-    "open": "btn-teacher-open (⚙️)", "pinDefault": "1234 (verrou désactivé par défaut)", "save": "btn-save-teacher-settings « Enregistrer les réglages »",
+    "open": "btn-teacher-open (⚙️)", "pin": "verrou désactivé par défaut ; 4 à 6 chiffres à choisir pour l'activer ; jamais affiché ni stocké en clair", "save": "btn-save-teacher-settings « Enregistrer les réglages »",
     "tabs": ["🖨️ Imprimante 3D", "🎨 Outils & Pédagogie", "📖 Fiche Trancheur"],
     "fields": [
       { "id": "setting-bed-size", "label": "Dimensions du plateau d'impression (mm)", "values": [120, 180, 220, 256, 300, 400], "default": 256 },

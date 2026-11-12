@@ -128,7 +128,7 @@ class EditModeManager {
                 <span>&#128207; Épaisseur</span>
                 <span id="label-thickness-val" style="color: #0369a1;">18 mm</span>
               </div>
-              <input type="range" id="input-edit-thickness" min="4" max="40" step="1" value="18" style="width: 100%; cursor: pointer;">
+              <input type="range" id="input-edit-thickness" aria-label="Épaisseur du trait" min="4" max="40" step="1" value="18" style="width: 100%; cursor: pointer;">
             </div>
 
             <!-- Section Épaisseur d'une seule poignée -->
@@ -137,7 +137,7 @@ class EditModeManager {
                 <span style="display: inline-flex; align-items: center; gap: 6px;">&#128309; &Eacute;paisseur du point</span>
                 <span id="label-handle-thickness-val" style="color: #0369a1; font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 800;">18 mm</span>
               </div>
-              <input type="range" id="input-edit-handle-thickness" min="2" max="50" step="1" value="18" style="width: 100%; cursor: pointer;">
+              <input type="range" id="input-edit-handle-thickness" aria-label="Épaisseur du point" min="2" max="50" step="1" value="18" style="width: 100%; cursor: pointer;">
             </div>
 
             <!-- Options du ballon -->
@@ -161,9 +161,9 @@ class EditModeManager {
                 </button>
                 <button id="btn-edit-scale-reset" class="reset-1-1 is-default" type="button" title="Remettre la taille d'origine (1:1)">&#8634; Reset 1:1</button>
               </div>
-              <div class="scale-row"><span class="axis-tag axis-x">Largeur</span><input type="range" id="edit-scale-x" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-x" class="scale-val">&times;1.0</span></div>
-              <div class="scale-row"><span class="axis-tag axis-y">Hauteur</span><input type="range" id="edit-scale-y" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-y" class="scale-val">&times;1.0</span></div>
-              <div class="scale-row"><span class="axis-tag axis-z">Profondeur</span><input type="range" id="edit-scale-z" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-z" class="scale-val">&times;1.0</span></div>
+              <div class="scale-row"><span class="axis-tag axis-x">Largeur</span><input type="range" id="edit-scale-x" aria-label="Largeur" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-x" class="scale-val">&times;1.0</span></div>
+              <div class="scale-row"><span class="axis-tag axis-y">Hauteur</span><input type="range" id="edit-scale-y" aria-label="Hauteur" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-y" class="scale-val">&times;1.0</span></div>
+              <div class="scale-row"><span class="axis-tag axis-z">Profondeur</span><input type="range" id="edit-scale-z" aria-label="Profondeur" min="0.2" max="3" step="0.05" value="1"><span id="lbl-edit-scale-z" class="scale-val">&times;1.0</span></div>
             </details>
 
             <!-- Modèle importé (STL / OBJ) -->

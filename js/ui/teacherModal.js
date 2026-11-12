@@ -1,30 +1,95 @@
 /**
- * Kidi3D - Contrôleur de l'Espace Enseignant
+ * 3D-Facile - Contrôleur de l'Espace Enseignant
  * Paramètres pédagogiques, sécurité d'impression 3D et bridage adapté à l'âge
  */
+
+/**
+ * Empreinte SHA-256 (hexadécimal) d'un texte ASCII — sert à ne jamais enregistrer le code enseignant en clair.
+ * Implémentation autonome (fonctionne aussi hors HTTPS, où l'API crypto du navigateur est indisponible).
+ */
+function sha256Hex(ascii) {
+  const rightRotate = (v, a) => (v >>> a) | (v << (32 - a));
+  const maxWord = 2 ** 32;
+  const words = [];
+  const bitLength = ascii.length * 8;
+  let hash = [];
+  const k = [];
+  let primeCounter = 0;
+  const isComposite = {};
+  for (let candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii.length % 64 - 56) ascii += '\x00';
+  for (let i = 0; i < ascii.length; i++) {
+    const j = ascii.charCodeAt(i);
+    if (j >> 8) return null; // caractères ASCII uniquement
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = (bitLength / maxWord) | 0;
+  words[words.length] = bitLength;
+  for (let j = 0; j < words.length;) {
+    const w = words.slice(j, j += 16);
+    const oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (let i = 0; i < 64; i++) {
+      const w15 = w[i - 15], w2 = w[i - 2];
+      const a = hash[0], e = hash[4];
+      const temp1 = hash[7] + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i]
+        + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) + w[i - 7]
+          + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) | 0);
+      const temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+    for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    for (let j = 3; j + 1; j--) {
+      const b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? '0' : '') + b.toString(16);
+    }
+  }
+  return result;
+}
 
 class TeacherController {
   constructor(app) {
     this.app = app;
-    this.usePin = localStorage.getItem('kidi3d_use_pin') === 'true'; // Décoché par défaut
-    this.pin = localStorage.getItem('kidi3d_teacher_pin') || '1234';
+    this.usePin = safeStorage.getItem('kidi3d_use_pin') === 'true'; // Décoché par défaut
+    // Le code enseignant n'est jamais enregistré en clair : seulement son empreinte.
+    let pinHash = safeStorage.getItem('kidi3d_teacher_pin_hash');
+    const legacyPin = safeStorage.getItem('kidi3d_teacher_pin'); // anciennes versions : code en clair
+    if (!pinHash && legacyPin) {
+      pinHash = TeacherController.hashPin(legacyPin);
+      safeStorage.setItem('kidi3d_teacher_pin_hash', pinHash);
+    }
+    safeStorage.removeItem('kidi3d_teacher_pin');
+    // Anciens réglages verrouillés sans code personnalisé : l'ancien code par défaut reste valable jusqu'à son changement
+    if (!pinHash && this.usePin) pinHash = TeacherController.hashPin('1234');
+    this.pinHash = pinHash;
 
     // Réglages par défaut
     this.settings = {
-      bedSize: parseInt(localStorage.getItem('kidi3d_bed_size') || '256', 10),
-      minThickness: parseInt(localStorage.getItem('kidi3d_min_thickness') || '5', 10),
-      autoBase: localStorage.getItem('kidi3d_auto_base') === 'true', // Désactivé par défaut !
-      showGrid: localStorage.getItem('kidi3d_show_grid') !== 'false',
-      toolBalloon: localStorage.getItem('kidi3d_tool_balloon') !== 'false',
-      toolPillar: localStorage.getItem('kidi3d_tool_pillar') !== 'false',
-      toolShapes: localStorage.getItem('kidi3d_tool_shapes') !== 'false',
-      toolStamps: localStorage.getItem('kidi3d_tool_stamps') !== 'false',
-      toolEdit: localStorage.getItem('kidi3d_tool_edit') !== 'false',
-      soundEnabled: localStorage.getItem('kidi3d_sound') === 'true', // son coupé par défaut
-      uiScale: localStorage.getItem('kidi3d_ui_scale') || 'auto',
-      workScale: parseFloat(localStorage.getItem('kidi3d_work_scale') || '1') || 1,
-      truncateBed: localStorage.getItem('kidi3d_truncate_bed') !== 'false', // activé par défaut
-      booleanPreview: localStorage.getItem('kidi3d_bool_preview') !== 'false' // aperçu des trous en direct, activé par défaut
+      bedSize: parseInt(safeStorage.getItem('kidi3d_bed_size') || '256', 10),
+      minThickness: parseInt(safeStorage.getItem('kidi3d_min_thickness') || '5', 10),
+      autoBase: safeStorage.getItem('kidi3d_auto_base') === 'true', // Désactivé par défaut !
+      showGrid: safeStorage.getItem('kidi3d_show_grid') !== 'false',
+      toolBalloon: safeStorage.getItem('kidi3d_tool_balloon') !== 'false',
+      toolPillar: safeStorage.getItem('kidi3d_tool_pillar') !== 'false',
+      toolShapes: safeStorage.getItem('kidi3d_tool_shapes') !== 'false',
+      toolStamps: safeStorage.getItem('kidi3d_tool_stamps') !== 'false',
+      toolEdit: safeStorage.getItem('kidi3d_tool_edit') !== 'false',
+      soundEnabled: safeStorage.getItem('kidi3d_sound') === 'true', // son coupé par défaut
+      uiScale: safeStorage.getItem('kidi3d_ui_scale') || 'auto',
+      workScale: parseFloat(safeStorage.getItem('kidi3d_work_scale') || '1') || 1,
+      truncateBed: safeStorage.getItem('kidi3d_truncate_bed') !== 'false', // activé par défaut
+      booleanPreview: safeStorage.getItem('kidi3d_bool_preview') !== 'false' // aperçu des trous en direct, activé par défaut
     };
 
     this.bindEvents();
@@ -50,13 +115,14 @@ class TeacherController {
     const pinInput = document.getElementById('teacher-pin-input');
     if (btnVerify && pinInput) {
       const checkPin = () => {
-        if (pinInput.value === this.pin) {
+        if (this.pinHash && TeacherController.hashPin(pinInput.value.trim()) === this.pinHash) {
           this.showTeacherContent();
           pinInput.value = '';
+          pinInput.style.borderColor = '';
         } else {
           pinInput.style.borderColor = '#ef4444';
           pinInput.value = '';
-          this.app.showToast('Code PIN incorrect (Code par défaut: 1234)');
+          this.app.showToast('Code incorrect.');
         }
       };
 
@@ -85,6 +151,10 @@ class TeacherController {
     }
   }
 
+  static hashPin(pin) {
+    return sha256Hex('3d-facile:' + String(pin));
+  }
+
   openModal() {
     const modal = document.getElementById('modal-teacher');
     modal.classList.remove('hidden');
@@ -108,7 +178,7 @@ class TeacherController {
     document.getElementById('setting-min-thickness').value = this.settings.minThickness;
     document.getElementById('setting-auto-base').checked = this.settings.autoBase;
     document.getElementById('setting-show-grid').checked = this.settings.showGrid;
-    document.getElementById('setting-invert-pan').checked = localStorage.getItem('kidi3d_invert_pan_x') === 'true';
+    document.getElementById('setting-invert-pan').checked = safeStorage.getItem('kidi3d_invert_pan_x') === 'true';
     document.getElementById('toggle-tool-balloon').checked = this.settings.toolBalloon;
     document.getElementById('toggle-tool-pillar').checked = this.settings.toolPillar;
     const toggleShapes = document.getElementById('toggle-tool-shapes');
@@ -150,15 +220,28 @@ class TeacherController {
     const boolEl = document.getElementById('setting-boolean-preview');
     const booleanPreview = boolEl ? boolEl.checked : true;
 
-    const newPin = document.getElementById('setting-new-pin').value.trim();
-    if (newPin.length >= 4) {
-      this.pin = newPin;
-      localStorage.setItem('kidi3d_teacher_pin', newPin);
+    // Code enseignant : 4 à 6 chiffres, obligatoire pour activer le verrouillage
+    const newPinEl = document.getElementById('setting-new-pin');
+    const newPin = newPinEl.value.trim();
+    if (newPin && !/^[0-9]{4,6}$/.test(newPin)) {
+      this.app.showToast('Le code doit comporter 4 à 6 chiffres.');
+      newPinEl.focus();
+      return;
+    }
+    if (usePin && !newPin && !this.pinHash) {
+      this.app.showToast("Choisis un code de 4 à 6 chiffres pour verrouiller l'accès.");
+      newPinEl.focus();
+      return;
+    }
+    if (newPin) {
+      this.pinHash = TeacherController.hashPin(newPin);
+      safeStorage.setItem('kidi3d_teacher_pin_hash', this.pinHash);
+      newPinEl.value = '';
     }
 
     this.usePin = usePin;
-    localStorage.setItem('kidi3d_use_pin', usePin);
-    localStorage.setItem('kidi3d_invert_pan_x', invertPan);
+    safeStorage.setItem('kidi3d_use_pin', usePin);
+    safeStorage.setItem('kidi3d_invert_pan_x', invertPan);
     if (this.app.cameraController) {
       this.app.cameraController.invertPanX = invertPan;
     }
@@ -180,20 +263,20 @@ class TeacherController {
       booleanPreview
     };
 
-    localStorage.setItem('kidi3d_bed_size', bedSize);
-    localStorage.setItem('kidi3d_min_thickness', minThickness);
-    localStorage.setItem('kidi3d_auto_base', autoBase);
-    localStorage.setItem('kidi3d_show_grid', showGrid);
-    localStorage.setItem('kidi3d_tool_balloon', toolBalloon);
-    localStorage.setItem('kidi3d_tool_pillar', toolPillar);
-    localStorage.setItem('kidi3d_tool_shapes', toolShapes);
-    localStorage.setItem('kidi3d_tool_stamps', toolStamps);
-    localStorage.setItem('kidi3d_tool_edit', toolEdit);
-    localStorage.setItem('kidi3d_sound', soundEnabled);
-    localStorage.setItem('kidi3d_ui_scale', uiScale);
-    localStorage.setItem('kidi3d_work_scale', workScale);
-    localStorage.setItem('kidi3d_truncate_bed', truncateBed);
-    localStorage.setItem('kidi3d_bool_preview', booleanPreview);
+    safeStorage.setItem('kidi3d_bed_size', bedSize);
+    safeStorage.setItem('kidi3d_min_thickness', minThickness);
+    safeStorage.setItem('kidi3d_auto_base', autoBase);
+    safeStorage.setItem('kidi3d_show_grid', showGrid);
+    safeStorage.setItem('kidi3d_tool_balloon', toolBalloon);
+    safeStorage.setItem('kidi3d_tool_pillar', toolPillar);
+    safeStorage.setItem('kidi3d_tool_shapes', toolShapes);
+    safeStorage.setItem('kidi3d_tool_stamps', toolStamps);
+    safeStorage.setItem('kidi3d_tool_edit', toolEdit);
+    safeStorage.setItem('kidi3d_sound', soundEnabled);
+    safeStorage.setItem('kidi3d_ui_scale', uiScale);
+    safeStorage.setItem('kidi3d_work_scale', workScale);
+    safeStorage.setItem('kidi3d_truncate_bed', truncateBed);
+    safeStorage.setItem('kidi3d_bool_preview', booleanPreview);
 
     this.applySettingsToApp();
     document.getElementById('modal-teacher').classList.add('hidden');

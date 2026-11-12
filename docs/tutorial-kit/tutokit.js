@@ -68,7 +68,7 @@
   async function ready(timeoutMs = 10000) {
     const t0 = performance.now();
     while (!(window.kidiApp && window.THREE && app().sceneManager)) {
-      if (performance.now() - t0 > timeoutMs) fail('Application non chargée (window.kidiApp absent). Vérifier le réseau (Three.js vient d\'un CDN).');
+      if (performance.now() - t0 > timeoutMs) fail('Application non chargée (window.kidiApp absent). Vérifier que le dossier vendor/ est bien servi.');
       await sleep(100);
     }
     if (!window.innerWidth || !window.innerHeight) {

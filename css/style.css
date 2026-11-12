@@ -2599,3 +2599,10 @@ html.compact .edit-row-actions.edit-row-2 { grid-template-columns: 1fr 1fr; }
 .edit-rot-help { margin: 2px 0 6px; font-size: 11px; font-weight: 700; color: #475569; line-height: 1.35; text-align: center; }
 .edit-rot-help .c-g { color: #16a34a; } .edit-rot-help .c-r { color: #dc2626; } .edit-rot-help .c-b { color: #2563eb; }
 html.compact .edit-rot-help { font-size: 10px; }
+
+/* V18 - Reprise d'un dessin sur poste partagé */
+.resume-card { max-width: 460px; }
+.resume-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 16px; }
+.resume-body p { font-size: 15px; color: var(--text-dark); line-height: 1.45; margin: 0; }
+.resume-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.resume-actions .pill-btn { justify-content: center; min-height: 48px; font-size: 15px; }

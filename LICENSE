@@ -1,0 +1,24 @@
+3D-Facile
+Copyright (c) 2026 dmtvision. Tous droits réservés.
+
+Ce logiciel (code source, interface, textes, graphismes et documentation) est la propriété exclusive de son auteur.
+La consultation du code source est autorisée. Toute autre utilisation — reproduction, modification, distribution,
+hébergement pour des tiers, revente ou mise à disposition, gratuite ou payante, en tout ou partie — est interdite
+sans l'autorisation écrite préalable de l'auteur.
+
+Les établissements et collectivités souhaitant utiliser 3D-Facile doivent obtenir une licence d'utilisation auprès de l'auteur.
+
+Les composants tiers inclus dans le dossier vendor/ restent soumis à leurs propres licences, listées dans
+THIRD_PARTY_NOTICES.md.
+
+LE LOGICIEL EST FOURNI « EN L'ÉTAT », SANS GARANTIE D'AUCUNE SORTE, EXPLICITE OU IMPLICITE.
+
+---
+
+3D-Facile
+Copyright (c) 2026 dmtvision. All rights reserved.
+
+Viewing the source code is permitted. Any other use — copying, modifying, distributing, hosting for third parties,
+reselling or making available, free of charge or not, in whole or in part — is prohibited without the author's prior
+written permission. Third-party components in vendor/ remain under their own licenses (see THIRD_PARTY_NOTICES.md).
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.

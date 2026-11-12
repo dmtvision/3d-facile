@@ -81,7 +81,7 @@ class Kidi3DApp {
 
     this.setupDrawingOverlay();
     this.bindUI();
-    this.loadAutoSave();
+    this.offerResume();
     this.applyUIScale();
     this.watchLayoutChanges();
     this.setupMoveAll();
@@ -90,7 +90,7 @@ class Kidi3DApp {
     this.updateHintText();
     this.animate();
 
-    this.showToast('Bienvenue dans ton atelier Kidi3D !');
+    this.showToast('Bienvenue dans ton atelier 3D-Facile !');
   }
 
   setupDrawingOverlay() {
@@ -1230,7 +1230,7 @@ class Kidi3DApp {
     this.historyStack = [];
     this.redoStack = [];
     this.updateHistoryButtons();
-    localStorage.removeItem('kidi3d_autosave');
+    safeStorage.removeItem('kidi3d_autosave');
     if (this.importer) this.importer.forget();
     this.showToast('Nouvelle feuille magique toute propre !');
     if (window.soundFx) window.soundFx.playPop();
@@ -1387,11 +1387,54 @@ class Kidi3DApp {
       scale: { x: m.scale.x, y: m.scale.y, z: m.scale.z },
       rotation: { x: m.rotation.x, y: m.rotation.y, z: m.rotation.z }
     }));
-    localStorage.setItem('kidi3d_autosave', JSON.stringify(data));
+    const ok = safeStorage.setItem('kidi3d_autosave', JSON.stringify(data));
+    // Stockage interdit ou plein : on prévient une fois, le travail continue (sauvegarde manuelle possible)
+    if (!ok && !this.storageWarned) {
+      this.storageWarned = true;
+      this.showToast(safeStorage.available
+        ? '⚠️ Mémoire du navigateur pleine : le dessin n\'est plus sauvegardé automatiquement. Utilise « Sauvegarder .kid3d ».'
+        : '⚠️ Ce navigateur ne permet pas la sauvegarde automatique. Utilise « Sauvegarder .kid3d » pour garder ton dessin.');
+    } else if (ok) {
+      this.storageWarned = false;
+    }
+  }
+
+  // Poste partagé : s'il reste un dessin, on demande s'il faut le reprendre ou commencer une nouvelle feuille
+  offerResume() {
+    let elements = null;
+    try { elements = JSON.parse(safeStorage.getItem('kidi3d_autosave') || 'null'); } catch (e) { elements = null; }
+    if (!Array.isArray(elements) || !elements.length) {
+      if (!safeStorage.available) {
+        this.storageWarned = true;
+        setTimeout(() => this.showToast('⚠️ Ce navigateur ne permet pas la sauvegarde automatique. Utilise « Sauvegarder .kid3d » pour garder ton dessin.'), 600);
+      }
+      return;
+    }
+    const modal = document.getElementById('modal-resume');
+    const text = document.getElementById('resume-text');
+    if (text) text.textContent = `Le dessin précédent contient ${elements.length} forme${elements.length > 1 ? 's' : ''}. Tu peux le reprendre ou commencer un nouveau dessin.`;
+    const close = () => modal.classList.add('hidden');
+    document.getElementById('btn-resume-continue').onclick = () => {
+      close();
+      this.loadAutoSave();
+    };
+    document.getElementById('btn-resume-new').onclick = () => {
+      close();
+      safeStorage.removeItem('kidi3d_autosave');
+      if (this.importer) this.importer.forget();
+    };
+    modal.classList.remove('hidden');
+  }
+
+  // Nom de fichier unique et lisible : 3D-Facile_2026-11-12_14h30.stl (aucune donnée personnelle)
+  exportFileName(ext) {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    return `3D-Facile_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}h${p(d.getMinutes())}.${ext}`;
   }
 
   loadAutoSave() {
-    const saved = localStorage.getItem('kidi3d_autosave');
+    const saved = safeStorage.getItem('kidi3d_autosave');
     if (saved) {
       try {
         const elements = JSON.parse(saved);
@@ -1798,10 +1841,13 @@ class Kidi3DApp {
       const qualityEl = document.querySelector('input[name="export-quality"]:checked');
       const quality = qualityEl ? qualityEl.value : 'smooth';
 
-      const success = Exporter3D.exportSTLBinary(exportList, 'Export3D.stl', autoFit, bedSize, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
-      if (success) {
+      const success = Exporter3D.exportSTLBinary(exportList, this.exportFileName('stl'), autoFit, bedSize, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
+      if (success && Exporter3D.lastExportVerified) {
         this.showToast('🚀 Fichier STL téléchargé !');
         if (window.soundFx) window.soundFx.playSuccess();
+      } else if (success) {
+        // Le moteur de fusion n'a pas pu traiter toutes les pièces : on ne prétend pas que le fichier est sûr
+        this.showToast('⚠️ Fichier STL téléchargé, mais certaines pièces n\'ont pas pu être fusionnées : vérifie-le dans le trancheur avant d\'imprimer.');
       } else {
         this.showToast('Dessine d\'abord quelque chose avant d\'imprimer !');
       }
@@ -1813,8 +1859,10 @@ class Kidi3DApp {
       if (this.baseMesh) exportList.push(this.baseMesh);
       const qualityEl = document.querySelector('input[name="export-quality"]:checked');
       const quality = qualityEl ? qualityEl.value : 'smooth';
-      const ok = Exporter3D.exportOBJ(exportList, 'Export3D.obj', true, this.teacherController.settings.bedSize || 180, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
-      this.showToast(ok ? '🎨 Fichier OBJ téléchargé !' : "Dessine d'abord quelque chose avant d'exporter !");
+      const ok = Exporter3D.exportOBJ(exportList, this.exportFileName('obj'), true, this.teacherController.settings.bedSize || 180, quality, 1 / this.workScale, this.teacherController.settings.truncateBed);
+      this.showToast(!ok ? "Dessine d'abord quelque chose avant d'exporter !"
+        : Exporter3D.lastExportVerified ? '🎨 Fichier OBJ téléchargé !'
+          : '⚠️ Fichier OBJ téléchargé, mais certaines pièces n\'ont pas pu être fusionnées : vérifie-le avant d\'imprimer.');
     });
 
     document.querySelectorAll('input[name="export-quality"]').forEach(r => {
@@ -1827,7 +1875,7 @@ class Kidi3DApp {
     });
 
     document.getElementById('btn-save-project').addEventListener('click', () => {
-      Exporter3D.exportProjectJSON(this.userMeshes, 'mon-projet-kidi3d.kid3d');
+      Exporter3D.exportProjectJSON(this.userMeshes, this.exportFileName('kid3d'));
       this.showToast('💾 Projet sauvegardé !');
     });
 
@@ -1922,7 +1970,7 @@ class Kidi3DApp {
     setTimeout(() => {
       toast.style.opacity = '0';
       toast.style.transform = 'translateY(-10px)';
-      setTimeout(() => container.removeChild(toast), 300);
+      setTimeout(() => toast.remove(), 300);
     }, 2500);
   }
 

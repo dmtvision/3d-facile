@@ -1,6 +1,6 @@
 # Instructions pour les agents IA — 3D-Facile
 
-Application web (HTML + JavaScript + Three.js r128, sans build) pour dessiner en 3D et exporter en STL/OBJ. Public : enfants de 4 à 10 ans.
+Application web (HTML + JavaScript + Three.js r128, sans build) pour dessiner en 3D et exporter en STL/OBJ. Public : enfants de 6 à 10 ans. Fonctionne sans aucun appel extérieur (bibliothèques et polices dans `vendor/`).
 
 ## Écrire un tutoriel (avec captures d'écran)
 Lire et suivre **[`docs/tutorial-kit/README.md`](docs/tutorial-kit/README.md)**. En résumé :

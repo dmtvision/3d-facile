@@ -187,7 +187,7 @@ class ModelImporter {
   register(id, rec) {
     this.geos.set(id, rec);
     try {
-      localStorage.setItem('kidi3d_geo_' + id, JSON.stringify(ModelImporter.encode(rec)));
+      safeStorage.setItem('kidi3d_geo_' + id, JSON.stringify(ModelImporter.encode(rec)));
     } catch (e) {
       if (!this.warnedQuota) {
         this.warnedQuota = true;
@@ -231,7 +231,7 @@ class ModelImporter {
     try {
       if (el.geometry) rec = ModelImporter.decode(el.geometry);
       else {
-        const saved = localStorage.getItem('kidi3d_geo_' + el.geoId);
+        const saved = safeStorage.getItem('kidi3d_geo_' + el.geoId);
         if (saved) rec = ModelImporter.decode(JSON.parse(saved));
       }
     } catch (e) { rec = null; }
@@ -243,7 +243,7 @@ class ModelImporter {
     // « Tout effacer » : on libère aussi la mémoire du navigateur
     this.geos.clear();
     try {
-      Object.keys(localStorage).filter(k => k.startsWith('kidi3d_geo_')).forEach(k => localStorage.removeItem(k));
+      safeStorage.keys().filter(k => k.startsWith('kidi3d_geo_')).forEach(k => safeStorage.removeItem(k));
     } catch (e) { /* sans importance */ }
   }
 

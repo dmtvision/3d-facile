@@ -514,6 +514,7 @@ class Exporter3D {
       if (!solids.length) return false;
       // Impression : un seul volume étanche (fusion), sinon export pièce par pièce
       const print = this.buildPrintMesh(solids, quality, truncate);
+      this.lastExportVerified = !!(print && !print.failed.length);
       if (print) return this._writePrintSTL(print, solids, filename, autoFit, bedSize, userScale, truncate);
       return this._exportSTLBinary(solids, filename, autoFit, bedSize, quality, userScale, truncate);
     } finally {
@@ -527,8 +528,10 @@ class Exporter3D {
       const solids = this.solids(meshes);
       if (!solids.length) return false;
       // « Topologie épurée (Blender) » : on garde les pièces séparées et leurs quadrilatères ; sinon volume fusionné en couleurs
+      this.lastExportVerified = quality === 'lowpoly'; // finition Blender : pièces séparées par choix
       if (quality !== 'lowpoly') {
         const print = this.buildPrintMesh(solids, quality, truncate);
+        this.lastExportVerified = !!(print && !print.failed.length);
         if (print) return this._writePrintOBJ(print, solids, filename, autoFit, bedSize, userScale, truncate);
       }
       return this._exportOBJ(solids, filename, autoFit, bedSize, quality, userScale, truncate);
@@ -863,7 +866,7 @@ class Exporter3D {
    */
   static exportProjectJSON(meshes, filename = 'Dessin3D.kid3d') {
     const projectData = {
-      app: 'Kidi3D',
+      app: '3D-Facile',
       version: '2.0',
       timestamp: Date.now(),
       elements: meshes.map(m => ({

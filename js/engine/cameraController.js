@@ -30,7 +30,7 @@ class KidCameraController {
     this.lastMouseY = 0;
 
     // Option sens de Pan (corrigé par défaut)
-    this.invertPanX = localStorage.getItem('kidi3d_invert_pan_x') === 'true';
+    this.invertPanX = safeStorage.getItem('kidi3d_invert_pan_x') === 'true';
 
     this.updateCameraPosition();
   }
