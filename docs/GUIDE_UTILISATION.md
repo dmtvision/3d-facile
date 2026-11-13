@@ -487,7 +487,19 @@ Recommandations d'impression en classe (§14.5).
 
 ---
 
-## 16. Smartphone et petits écrans
+## 16. Smartphone, tablette et petits écrans
+
+### 16.1 Tablettes et écrans tactiles (mise en page complète)
+Sur un écran tactile de plus de 820 px de large (iPad, tablette, écran interactif) :
+- l'interface n'est **jamais réduite sous 100 %** et les boutons font **au moins 44 px** (taille conseillée pour le doigt) ;
+- le **panneau caméra est replié** derrière le bouton rond **🧭** (comme sur téléphone) ; la vue se tourne aussi **à deux doigts** ;
+- jusqu'à 1180 px de large, **Annuler** et **Refaire** n'affichent que leur flèche (↩️ ↪️ ; info-bulle conservée) pour que la barre du haut tienne sur une ligne ;
+- le popup « Bouger » est allégé : légendes et rappels masqués, « Proportions » replié par défaut ;
+- les astuces « souris » sont masquées.
+
+Le zoom du navigateur (agrandir) est autorisé partout pour l'accessibilité.
+
+### 16.2 Smartphones et petites fenêtres
 
 Le **mode compact** s'active automatiquement quand la fenêtre fait **820 px de large ou moins**, ou **560 px de haut ou moins**.
 

@@ -2606,3 +2606,74 @@ html.compact .edit-rot-help { font-size: 10px; }
 .resume-body p { font-size: 15px; color: var(--text-dark); line-height: 1.45; margin: 0; }
 .resume-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .resume-actions .pill-btn { justify-content: center; min-height: 48px; font-size: 15px; }
+
+/* ==========================================================================
+   V19 - Accessibilité : contrastes (texte ≥ 4,5:1) et cibles tactiles (≥ 44 px)
+   ========================================================================== */
+:root { --primary-text: #c8102e; } /* rouge des textes actifs : même teinte, assez foncée pour être lue */
+.cam-pill { color: #475569; }
+.cam-pill.active, .magic-tool-btn.active .tool-name { color: var(--primary-text); }
+.lg-y { color: #15803d; }
+.axis-y { background: #15803d; }
+.edit-rot-help .c-g { color: #15803d; }
+
+/* Écrans tactiles : zone de toucher agrandie sans changer l'aspect (couleurs, bouts du curseur) */
+html.touch .color-swatch, html.touch .thickness-end { position: relative; }
+html.touch .color-swatch::after, html.touch .thickness-end::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+
+/* Tablettes (mise en page complète) : boutons d'au moins 44 px */
+html.touch:not(.compact) .pill-btn { min-height: 44px; }
+html.touch:not(.compact) .mini-icon-btn { width: 44px; height: 44px; }
+html.touch:not(.compact) .dpad-controller { grid-template-columns: 48px 56px 48px; grid-template-rows: 48px 96px 48px; }
+html.touch:not(.compact) .dpad-center-zoom { gap: 4px; }
+html.touch:not(.compact) .zoom-btn { min-height: 44px; }
+html.touch:not(.compact) .cam-pill { min-width: 44px; min-height: 48px; }
+html.touch:not(.compact) .move-all-pad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); }
+html.touch:not(.compact) .mouse-hints { display: none; } /* astuces souris : inutiles au doigt */
+html.touch:not(.compact) .size-slider input[type="range"] { height: 44px; }
+html.touch:not(.compact) .edit-action-pill, html.touch:not(.compact) .edit-lock-btn { min-height: 44px; }
+
+/* V19b - Tablettes : panneau caméra repliable (comme sur téléphone) et popup « Bouger » allégé */
+html.touch:not(.compact) .cam-toggle {
+  display: flex; align-items: center; justify-content: center;
+  position: absolute; top: 88px; left: 14px; z-index: 26;
+  width: 52px; height: 52px; border-radius: 50%; font-size: 26px;
+  background: var(--panel-bg); border: 3px solid var(--panel-border); box-shadow: var(--panel-shadow);
+  cursor: pointer; zoom: var(--ui-scale);
+}
+html.touch:not(.compact) .cam-toggle.on { background: #e0f2fe; border-color: #38bdf8; }
+html.touch:not(.compact) #camera-dock { display: none; top: 88px; left: 78px; z-index: 30; }
+html.touch:not(.compact) #camera-dock.open { display: flex; }
+html.touch:not(.compact) .dock-title, html.touch:not(.compact) .gizmo-caption { display: none; }
+html.touch:not(.compact) .edit-axis-legend,
+html.touch:not(.compact) .edit-shift-tip,
+html.touch:not(.compact) .edit-rot-help { display: none; }
+html.touch:not(.compact) .edit-action-pill, html.touch:not(.compact) .edit-lock-btn { min-height: 48px; }
+html.touch:not(.compact) .edit-floating-bar input[type="range"] { height: 44px; }
+html.touch .tf-handle { min-width: 46px; min-height: 46px; }
+
+/* V19c - Tablettes : barre du haut sur une seule ligne, cibles complètes */
+html.touch:not(.compact) .pill-btn, html.touch:not(.compact) .logo-title { white-space: nowrap; }
+html.touch:not(.compact) #top-bar { padding: 0 10px; gap: 8px; }
+html.touch:not(.compact) .top-actions, html.touch:not(.compact) .top-right { gap: 6px; }
+html.touch:not(.compact) .pill-btn { padding: 6px 12px; font-size: 15px; }
+html.touch:not(.compact) .logo-area { padding: 6px 12px; }
+html.touch:not(.compact) .mini-icon-btn { flex-shrink: 0; min-width: 44px; }
+html.touch:not(.compact) .edit-action-pill, html.touch:not(.compact) .edit-lock-btn { min-height: 50px; }
+
+/* Tablettes jusqu'à 1180 px : Annuler / Refaire en icônes (flèches explicites, info-bulle conservée) pour garder la barre sur une ligne */
+@media (max-width: 1180px) {
+  html.touch:not(.compact) #btn-undo .btn-label, html.touch:not(.compact) #btn-redo .btn-label { display: none; }
+  html.touch:not(.compact) #btn-undo, html.touch:not(.compact) #btn-redo { min-width: 48px; justify-content: center; }
+}
+
+/* Téléphones étroits : les 8 boutons de la barre du haut tiennent sur la largeur (carrés égaux) */
+@media (max-width: 440px) {
+  html.compact .top-actions .pill-btn, html.compact .top-right .pill-btn, html.compact .mini-icon-btn {
+    width: 44px; min-width: 0; height: 44px; min-height: 0; padding: 0; justify-content: center; flex-shrink: 0;
+  }
+  html.compact .top-actions, html.compact .top-right { gap: 3px; }
+  html.compact #top-bar { padding: 0 3px; }
+}

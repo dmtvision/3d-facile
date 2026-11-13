@@ -676,7 +676,7 @@ class EditModeManager {
     // Objet non courbe : le panneau « Proportions » est affiché d'emblée
     const box = document.getElementById('edit-scale-box');
     // Petit écran : proportions repliées (le volet doit rester petit pour ne pas cacher la forme)
-    if (box) box.open = !this.isMulti() && !this.isCurve(this.selectedMesh) && !document.documentElement.classList.contains('compact');
+    if (box) box.open = !this.isMulti() && !this.isCurve(this.selectedMesh) && !document.documentElement.classList.contains('compact') && !document.documentElement.classList.contains('touch');
 
     // Le curseur « Taille » du bas prend la valeur de la sélection
     this.app.beginSelectionThickness();

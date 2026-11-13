@@ -33,11 +33,11 @@ class TransformHandles {
     this.defs = [
       { id: 'width', axis: 'x', label: 'Largeur', color: '#dc2626', icon: arrow, fallback: [1, 0], size: 34,
         hint: 'Largeur : tire vers l\'extérieur pour élargir, vers l\'intérieur pour rétrécir' },
-      { id: 'height', axis: 'y', label: 'Hauteur', color: '#16a34a', icon: arrow, fallback: [0, -1], size: 34,
+      { id: 'height', axis: 'y', label: 'Hauteur', color: '#15803d', icon: arrow, fallback: [0, -1], size: 34,
         hint: 'Hauteur : tire vers l\'extérieur pour allonger, vers l\'intérieur pour raccourcir' },
       { id: 'depth', axis: 'z', label: 'Profondeur', color: '#2563eb', icon: arrow, fallback: [-0.8, -0.6], size: 34,
         hint: 'Profondeur : tire vers l\'extérieur pour épaissir, vers l\'intérieur pour amincir' },
-      { id: 'rotate', label: 'Tourner', color: '#f59e0b', size: 28,
+      { id: 'rotate', label: 'Tourner', color: '#b45309', size: 28,
         icon: '<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M22 14 A8 8 0 1 1 19.7 8.3 M22 4 V9.5 H16.5"/></svg>',
         hint: 'Tourner : glisse à gauche ou à droite' },
       { id: 'move', label: 'Déplacer', color: '#475569', square: true, size: 30,

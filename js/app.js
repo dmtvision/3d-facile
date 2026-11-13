@@ -937,6 +937,10 @@ class Kidi3DApp {
     const root = document.documentElement;
     root.classList.toggle('compact', compact);
     root.classList.toggle('compact-landscape', landscape);
+    // Écran tactile (tablette, écran interactif) : cibles au doigt d'au moins 44 px (classe html.touch)
+    const touch = root.dataset.forceTouch === '1' ||
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || (navigator.maxTouchPoints || 0) > 0;
+    root.classList.toggle('touch', !!touch);
     return { compact, landscape };
   }
 
@@ -948,8 +952,10 @@ class Kidi3DApp {
     const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
     if (root.classList.contains('compact-landscape')) return clamp(Math.min(w / 760, h / 420), 0.8, 1.2);
     if (root.classList.contains('compact')) return clamp(w / 390, 0.85, 1.25);
-    // Automatique : suit la taille de la fenêtre (référence 1200 × 760)
-    return clamp(Math.min(w / 1200, h / 760), 0.6, 1.25);
+    // Automatique : suit la taille de la fenêtre (référence 1200 × 760).
+    // Sur tablette, jamais en dessous de 100 % : les boutons restent assez grands pour le doigt.
+    const minScale = root.classList.contains('touch') ? 1 : 0.6;
+    return clamp(Math.min(w / 1200, h / 760), minScale, 1.25);
   }
 
   applyUIScale() {

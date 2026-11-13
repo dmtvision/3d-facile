@@ -237,6 +237,10 @@
       { "id": "setting-enable-pin", "label": "Verrouiller l'accès prof avec un code secret", "default": false }
     ]
   },
+  "touchTablet": {
+    "trigger": "écran tactile (pointer: coarse ou points de contact) hors mode compact : classe html.touch",
+    "layout": "interface ≥ 100 % ; boutons ≥ 44 px ; panneau caméra replié derrière 🧭 ; Annuler/Refaire en icônes jusqu'à 1180 px ; popup Bouger allégé (légendes masquées, Proportions replié)"
+  },
   "compactMode": {
     "trigger": "largeur ≤ 820 px ou hauteur ≤ 560 px (classe html.compact ; paysage bas : html.compact-landscape)",
     "layout": "barre du haut en icônes ; outils en grille 4 colonnes (portrait) ou 8 (paysage) ; caméra repliée (🧭) ; volets au-dessus du dock (portrait, ≤ 50 % de hauteur) ou à droite (paysage)",
